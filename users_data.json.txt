@@ -1,0 +1,177 @@
+[
+  {
+    "name": "alice",
+    "email": "alice1@example.com",
+    "password": "alice",
+    "phone": "0810000001",
+    "address": "100 Example St, Bangkok"
+  },
+  {
+    "name": "bob",
+    "email": "bob2@example.com",
+    "password": "bob",
+    "phone": "0810000002",
+    "address": "101 Example St, Bangkok"
+  },
+  {
+    "name": "charlie",
+    "email": "charlie3@example.com",
+    "password": "charlie",
+    "phone": "0810000003",
+    "address": "102 Example St, Bangkok"
+  },
+  {
+    "name": "david",
+    "email": "david4@example.com",
+    "password": "david",
+    "phone": "0810000004",
+    "address": "103 Example St, Bangkok"
+  },
+  {
+    "name": "eve",
+    "email": "eve5@example.com",
+    "password": "eve",
+    "phone": "0810000005",
+    "address": "104 Example St, Bangkok"
+  },
+  {
+    "name": "frank",
+    "email": "frank6@example.com",
+    "password": "frank",
+    "phone": "0810000006",
+    "address": "105 Example St, Bangkok"
+  },
+  {
+    "name": "grace",
+    "email": "grace7@example.com",
+    "password": "grace",
+    "phone": "0810000007",
+    "address": "106 Example St, Bangkok"
+  },
+  {
+    "name": "hannah",
+    "email": "hannah8@example.com",
+    "password": "hannah",
+    "phone": "0810000008",
+    "address": "107 Example St, Bangkok"
+  },
+  {
+    "name": "ivan",
+    "email": "ivan9@example.com",
+    "password": "ivan",
+    "phone": "0810000009",
+    "address": "108 Example St, Bangkok"
+  },
+  {
+    "name": "judy",
+    "email": "judy10@example.com",
+    "password": "judy",
+    "phone": "0810000010",
+    "address": "109 Example St, Bangkok"
+  },
+  {
+    "name": "kevin",
+    "email": "kevin11@example.com",
+    "password": "kevin",
+    "phone": "0810000011",
+    "address": "110 Example St, Bangkok"
+  },
+  {
+    "name": "laura",
+    "email": "laura12@example.com",
+    "password": "laura",
+    "phone": "0810000012",
+    "address": "111 Example St, Bangkok"
+  },
+  {
+    "name": "mike",
+    "email": "mike13@example.com",
+    "password": "mike",
+    "phone": "0810000013",
+    "address": "112 Example St, Bangkok"
+  },
+  {
+    "name": "nina",
+    "email": "nina14@example.com",
+    "password": "nina",
+    "phone": "0810000014",
+    "address": "113 Example St, Bangkok"
+  },
+  {
+    "name": "oscar",
+    "email": "oscar15@example.com",
+    "password": "oscar",
+    "phone": "0810000015",
+    "address": "114 Example St, Bangkok"
+  },
+  {
+    "name": "pam",
+    "email": "pam16@example.com",
+    "password": "pam",
+    "phone": "0810000016",
+    "address": "115 Example St, Bangkok"
+  },
+  {
+    "name": "quinn",
+    "email": "quinn17@example.com",
+    "password": "quinn",
+    "phone": "0810000017",
+    "address": "116 Example St, Bangkok"
+  },
+  {
+    "name": "rachel",
+    "email": "rachel18@example.com",
+    "password": "rachel",
+    "phone": "0810000018",
+    "address": "117 Example St, Bangkok"
+  },
+  {
+    "name": "steve",
+    "email": "steve19@example.com",
+    "password": "steve",
+    "phone": "0810000019",
+    "address": "118 Example St, Bangkok"
+  },
+  {
+    "name": "tracy",
+    "email": "tracy20@example.com",
+    "password": "tracy",
+    "phone": "0810000020",
+    "address": "119 Example St, Bangkok"
+  },
+  {
+    "name": "uma",
+    "email": "uma21@example.com",
+    "password": "uma",
+    "phone": "0810000021",
+    "address": "120 Example St, Bangkok"
+  },
+  {
+    "name": "victor",
+    "email": "victor22@example.com",
+    "password": "victor",
+    "phone": "0810000022",
+    "address": "121 Example St, Bangkok"
+  },
+  {
+    "name": "wendy",
+    "email": "wendy23@example.com",
+    "password": "wendy",
+    "phone": "0810000023",
+    "address": "122 Example St, Bangkok"
+  },
+  {
+    "name": "xavier",
+    "email": "xavier24@example.com",
+    "password": "xavier",
+    "phone": "0810000024",
+    "address": "123 Example St, Bangkok"
+  },
+  {
+    "name": "yara",
+    "email": "yara25@example.com",
+    "password": "yara",
+    "phone": "0810000025",
+    "address": "124 Example St, Bangkok"
+  }
+]

@@ -1,0 +1,92 @@
+  .nav {
+    background-color: #ffffff;
+    color: #000000;
+    padding: 1rem 2rem;
+    font-family: 'Segoe UI', sans-serif;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  }
+
+  .nav-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .brand {
+    font-size: 1.5rem;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .nav-links a {
+    color: #000000;
+    text-decoration: none;
+  }
+
+  .nav-links a:hover {
+    color: #000000;
+  }
+
+  .menu {
+    position: relative;
+  }
+
+  .menu-button {
+    background-color: #ffffff;
+    color: #333;
+    border: none;
+    padding: 0.6rem 1rem;
+    cursor: pointer;
+    font-size: 1rem;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+  }
+
+
+
+  .dropdown {
+    position: absolute;
+    top: 110%;
+    left: 0;
+    background-color: #222;
+    border: 1px solid #444;
+    border-radius: 4px;
+    padding: 0.5rem 0;
+    min-width: 180px;
+    z-index: 100;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  }
+
+  .dropdown a {
+    display: block;
+    padding: 0.5rem 1rem;
+    color: #fff;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+  }
+
+  .dropdown a:hover {
+    background-color: #ffffff;
+  }
+
+  .btn-outline {
+    background: transparent;
+    border: 1px solid #fff;
+    color: #fff;
+    padding: 0.4rem 1rem;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .btn-outline:hover {
+    background-color: #ffcc00;
+    color: #1f1f1f;
+    border-color: #ffcc00;
+  }
