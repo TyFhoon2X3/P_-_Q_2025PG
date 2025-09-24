@@ -1,0 +1,50 @@
+.contact-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 2rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.contact-title {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #1e40af; /* น้ำเงิน */
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.contact-subtitle {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #555;
+  margin-bottom: 2rem;
+}
+
+.contact-section {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  border-left: 5px solid #3b82f6;
+  background: #f9fafb;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+.contact-section:hover {
+  background: #e0f2fe;
+  transform: translateX(4px);
+}
+
+.contact-section h3 {
+  margin: 0;
+  font-size: 1.2rem;
+  color: #0f172a;
+}
+
+.contact-section p {
+  margin: 0.25rem 0 0 0;
+  color: #334155;
+  font-size: 1rem;
+}

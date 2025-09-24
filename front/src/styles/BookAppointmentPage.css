@@ -1,0 +1,130 @@
+.page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.page-title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  text-align: center;
+  color: #1f2937;
+  margin-bottom: 2rem;
+}
+
+.section {
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  padding: 1.5rem;
+  border-radius: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.input,
+.select {
+  border: 1px solid #d1d5db;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  width: 100%;
+  outline: none;
+}
+
+.input:focus,
+.select:focus {
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+.submit-btn {
+  background: linear-gradient(to right, #3b82f6, #6366f1);
+  color: white;
+  font-weight: 600;
+  padding: 0.75rem 2rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: opacity 0.2s ease;
+  margin-top: 1rem;
+}
+
+.submit-btn:hover {
+  opacity: 0.9;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.table th,
+.table td {
+  border: 1px solid #e5e7eb;
+  padding: 0.75rem;
+  text-align: center;
+}
+
+.table thead {
+  background: linear-gradient(to right, #eff6ff, #e0e7ff);
+  color: #374151;
+}
+
+.row-even { 
+  background-color: #f9fafb;
+}
+/* ===== Action Buttons ===== */
+.action-btn {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin: 0 0.25rem;
+}
+
+/* Edit Button */
+.edit-btn {
+  background: linear-gradient(to right, #10b981, #34d399);
+  color: white;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.4);
+}
+
+.edit-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* Delete Button */
+.delete-btn {
+  background: linear-gradient(to right, #ef4444, #f87171);
+  color: white;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+}
+
+.delete-btn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
