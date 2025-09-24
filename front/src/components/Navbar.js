@@ -24,6 +24,7 @@ export default function Navbar() {
     if (role === "r1") {
       return (
         <>
+          <NavLink to="/admin-dashboard">แดชบอร์ดผู้ดูแลระบบ</NavLink>
           <NavLink to="/admin/customers">ลูกค้า</NavLink>
           <NavLink to="/admin/services">บริการ</NavLink>
           <NavLink to="/admin/parts">อะไหล่</NavLink>
@@ -33,6 +34,7 @@ export default function Navbar() {
     if (role === "r2") {
       return (
         <>
+          <NavLink to="/user-dashboard">แดชบอร์ด</NavLink>
           <NavLink to="/my-vehicles">รถของฉัน</NavLink>
           <NavLink to="/book-service">จองบริการ</NavLink>
           <NavLink to="/bookings">การจอง</NavLink>
