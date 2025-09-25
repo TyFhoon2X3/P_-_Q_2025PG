@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useNavigate } from "react-router-dom";
-
+import Swal from 'sweetalert2'
 export default function BookService() {
   const nav = useNavigate();
   const [vehicles, setVehicles] = useState([]);
@@ -48,10 +48,19 @@ export default function BookService() {
         method: "POST",
         body: form,
       });
-      alert("✅ จองบริการสำเร็จ");
+      Swal.fire({
+        title: "✅ จองสำเร็จครับ",
+        icon: "success",
+        draggable: true
+      });
       nav("/bookings");
     } catch (err) {
-      alert("❌ จองไม่สำเร็จ: " + err.message);
+      Swal.fire({
+        title: "เกิดข้อผิดพลาด",
+        text: "❌ จองไม่สำเร็จ: " + err.message,
+        icon: "error",
+      });
+   
     }
   };
 

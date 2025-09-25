@@ -10,7 +10,7 @@ const BookingController = {
       const bookingRes = await pool.query(
         `SELECT b.booking_id, b.vehicle_id, b.date, b.time, b.status_id,
                 b.transport_required, b.description, b.cost, b.service, b.freight, b.slipfilename,
-                (b.cost + b.service + b.freight) AS total_price
+                (COALESCE(b.cost,0) + COALESCE(b.service,0) + COALESCE(b.freight,0)) AS total_price
          FROM bookings b
          WHERE b.booking_id = $1`,
         [id]
@@ -50,7 +50,7 @@ const BookingController = {
       const result = await pool.query(
         `SELECT b.booking_id, b.vehicle_id, b.date, b.time, b.status_id,
                 b.transport_required, b.description, b.cost, b.service, b.freight,
-                (b.cost + b.service + b.freight) AS total_price
+                (COALESCE(b.cost,0) + COALESCE(b.service,0) + COALESCE(b.freight,0)) AS total_price
          FROM bookings b
          ORDER BY b.date DESC, b.time DESC`
       );
@@ -64,13 +64,44 @@ const BookingController = {
 
   // CREATE booking
   async create(req, res) {
-    const { vehicle_id, date, time, status_id, transport_required, description, cost, service, freight, slipfilename, repair_id } = req.body;
     try {
+      const {
+        vehicle_id,
+        date,
+        time,
+        status_id, // optional
+        transport_required,
+        description,
+        cost,
+        service,
+        freight,
+        slipfilename,
+        repair_id,
+      } = req.body;
+
+      // ✅ ถ้าไม่ได้ส่ง status_id → ใช้ default = 1 (Pending)
+      const finalStatusId = status_id ?? 1;
+
       const insertRes = await pool.query(
-        `INSERT INTO bookings (vehicle_id, date, time, status_id, transport_required, description, cost, service, freight, slipfilename, repair_id)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-         RETURNING *`,
-        [vehicle_id, date, time, status_id, transport_required, description, cost, service, freight, slipfilename, repair_id]
+        `INSERT INTO bookings (
+          vehicle_id, date, time, status_id, transport_required,
+          description, cost, service, freight, slipfilename, repair_id
+        )
+        VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+        RETURNING *`,
+        [
+          vehicle_id,
+          date,
+          time,
+          finalStatusId,
+          transport_required,
+          description,
+          cost,
+          service,
+          freight,
+          slipfilename,
+          repair_id,
+        ]
       );
 
       res.status(201).json({ success: true, booking: insertRes.rows[0] });
@@ -83,20 +114,49 @@ const BookingController = {
   // UPDATE booking
   async update(req, res) {
     const { id } = req.params;
-    const { vehicle_id, date, time, status_id, transport_required, description, cost, service, freight, slipfilename, repair_id } = req.body;
     try {
+      const {
+        vehicle_id,
+        date,
+        time,
+        status_id, // optional
+        transport_required,
+        description,
+        cost,
+        service,
+        freight,
+        slipfilename,
+        repair_id,
+      } = req.body;
+
+      // ✅ กันกรณีส่ง status_id = null → ใช้ค่าเดิม
+      const current = await pool.query(`SELECT status_id FROM bookings WHERE booking_id=$1`, [id]);
+      if (!current.rowCount) {
+        return res.status(404).json({ success: false, message: "Booking not found" });
+      }
+      const finalStatusId = status_id ?? current.rows[0].status_id;
+
       const updateRes = await pool.query(
         `UPDATE bookings
          SET vehicle_id=$1, date=$2, time=$3, status_id=$4,
              transport_required=$5, description=$6, cost=$7, service=$8, freight=$9, slipfilename=$10, repair_id=$11
          WHERE booking_id=$12
          RETURNING *`,
-        [vehicle_id, date, time, status_id, transport_required, description, cost, service, freight, slipfilename, repair_id, id]
+        [
+          vehicle_id,
+          date,
+          time,
+          finalStatusId,
+          transport_required,
+          description,
+          cost,
+          service,
+          freight,
+          slipfilename,
+          repair_id,
+          id,
+        ]
       );
-
-      if (!updateRes.rowCount) {
-        return res.status(404).json({ success: false, message: "Booking not found" });
-      }
 
       res.json({ success: true, booking: updateRes.rows[0] });
     } catch (err) {
