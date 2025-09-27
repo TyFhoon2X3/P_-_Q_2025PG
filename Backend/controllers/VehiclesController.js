@@ -3,8 +3,17 @@ const pool = require("../db/db");
 const VehiclesController = {
   // CREATE vehicle
   async create(req, res) {
-    const { license_plate, model, id_brand, id_type } = req.body;
-    const user_id = req.user.user_id; // ✅ ดึงจาก JWT
+    const { license_plate, model, id_brand, id_type, id_user } = req.body;
+
+    // ✅ แยก role
+    let ownerId;
+    if (req.user.roleid === "r1") {
+      ownerId = id_user; // admin → ใช้ค่าจาก form
+    } else if (req.user.roleid === "r2") {
+      ownerId = req.user.user_id; // user → ใช้ของตัวเอง
+    } else {
+      return res.status(403).json({ error: "Forbidden: insufficient role" });
+    }
 
     try {
       // ตรวจสอบ FK
@@ -20,7 +29,7 @@ const VehiclesController = {
         `INSERT INTO vehicles (user_id, license_plate, id_brand, model, id_type)
          VALUES ($1, $2, $3, $4, $5)
          RETURNING *`,
-        [user_id, license_plate, id_brand, model, id_type]
+        [ownerId, license_plate, id_brand, model, id_type]
       );
 
       res.status(201).json({ success: true, vehicle: result.rows[0] });
@@ -39,8 +48,9 @@ const VehiclesController = {
     try {
       const result = await pool.query(
         `SELECT v.vehicle_id, v.license_plate, v.model,
-                v.id_brand, v.id_type,       -- ✅ ส่ง id_brand, id_type
-                u.name AS owner_name, b.brandname, t.typename
+                v.id_brand, v.id_type,
+                u.name AS owner_name, u.user_id AS id_user,
+                b.brandname, t.typename
          FROM vehicles v
          JOIN users u ON v.user_id = u.user_id
          JOIN vehicle_brands b ON v.id_brand = b.id_brand
@@ -60,7 +70,7 @@ const VehiclesController = {
       const userId = req.user.user_id;
       const result = await pool.query(
         `SELECT v.vehicle_id, v.license_plate, v.model,
-                v.id_brand, v.id_type,       -- ✅ ส่ง id_brand, id_type
+                v.id_brand, v.id_type,
                 b.brandname, t.typename
          FROM vehicles v
          JOIN vehicle_brands b ON v.id_brand = b.id_brand
@@ -102,24 +112,31 @@ const VehiclesController = {
   // UPDATE
   async update(req, res) {
     const { id } = req.params;
-    const { license_plate, model, id_brand, id_type } = req.body;
+    const { license_plate, model, id_brand, id_type, id_user } = req.body;
 
     try {
-      // ✅ เช็คเจ้าของก่อน
       const check = await pool.query("SELECT user_id FROM vehicles WHERE vehicle_id = $1", [id]);
       if (!check.rowCount) {
         return res.status(404).json({ error: "Vehicle not found" });
       }
-      if (req.user.roleid !== "r1" && check.rows[0].user_id !== req.user.user_id) {
+
+      let ownerId = check.rows[0].user_id;
+
+      // ✅ admin เปลี่ยนเจ้าของได้
+      if (req.user.roleid === "r1" && id_user) {
+        ownerId = id_user;
+      }
+      // ✅ user เปลี่ยนได้เฉพาะรถตัวเอง
+      else if (req.user.roleid === "r2" && check.rows[0].user_id !== req.user.user_id) {
         return res.status(403).json({ error: "Forbidden: not your vehicle" });
       }
 
       const result = await pool.query(
         `UPDATE vehicles
-         SET license_plate=$1, model=$2, id_brand=$3, id_type=$4
-         WHERE vehicle_id=$5
+         SET license_plate=$1, model=$2, id_brand=$3, id_type=$4, user_id=$5
+         WHERE vehicle_id=$6
          RETURNING *`,
-        [license_plate, model, id_brand, id_type, id]
+        [license_plate, model, id_brand, id_type, ownerId, id]
       );
 
       res.json({ success: true, vehicle: result.rows[0] });
@@ -137,11 +154,11 @@ const VehiclesController = {
   async delete(req, res) {
     const { id } = req.params;
     try {
-      // ✅ เช็คเจ้าของก่อน
       const check = await pool.query("SELECT user_id FROM vehicles WHERE vehicle_id = $1", [id]);
       if (!check.rowCount) {
         return res.status(404).json({ error: "Vehicle not found" });
       }
+
       if (req.user.roleid !== "r1" && check.rows[0].user_id !== req.user.user_id) {
         return res.status(403).json({ error: "Forbidden: not your vehicle" });
       }
@@ -154,6 +171,40 @@ const VehiclesController = {
       res.json({ success: true, message: "Vehicle deleted", deleted: result.rows[0] });
     } catch (err) {
       console.error("Delete vehicle error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  // STATS by brand
+  async getStatsByBrand(req, res) {
+    try {
+      const result = await pool.query(`
+        SELECT b.brandname, COUNT(*) AS total
+        FROM vehicles v
+        JOIN vehicle_brands b ON v.id_brand = b.id_brand
+        GROUP BY b.brandname
+        ORDER BY total DESC
+      `);
+      res.json({ success: true, stats: result.rows });
+    } catch (err) {
+      console.error("Get stats by brand error:", err);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  },
+
+  // STATS by type
+  async getStatsByType(req, res) {
+    try {
+      const result = await pool.query(`
+        SELECT t.typename, COUNT(*) AS total
+        FROM vehicles v
+        JOIN vehicle_types t ON v.id_type = t.id_type
+        GROUP BY t.typename
+        ORDER BY total DESC
+      `);
+      res.json({ success: true, stats: result.rows });
+    } catch (err) {
+      console.error("Get stats by type error:", err);
       res.status(500).json({ error: "Internal server error" });
     }
   },

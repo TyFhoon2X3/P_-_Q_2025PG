@@ -2,7 +2,8 @@ const express = require("express");
 const router = express.Router();
 const VehiclesController = require("../controllers/VehiclesController");
 const { verifyToken, authorizeRoles } = require("../middleware/authenticateUser");
-
+router.get("/stats/brand", verifyToken, authorizeRoles("r1"), VehiclesController.getStatsByBrand);
+router.get("/stats/type", verifyToken, authorizeRoles("r1"), VehiclesController.getStatsByType);
 // Admin เท่านั้น
 router.get("/", verifyToken, authorizeRoles("r1"), VehiclesController.getAll);
 
@@ -13,7 +14,7 @@ router.get("/mine", verifyToken, authorizeRoles("r2"), VehiclesController.getMin
 router.get("/:id", verifyToken, authorizeRoles("r1", "r2"), VehiclesController.getById);
 
 // User → เพิ่มรถ
-router.post("/", verifyToken, authorizeRoles("r2"), VehiclesController.create);
+router.post("/", verifyToken, authorizeRoles("r1", "r2"), VehiclesController.create);
 
 // Admin + User → อัปเดต
 router.put("/:id", verifyToken, authorizeRoles("r1", "r2"), VehiclesController.update);
@@ -21,6 +22,5 @@ router.put("/:id", verifyToken, authorizeRoles("r1", "r2"), VehiclesController.u
 
 // Admin + User → ลบ
 router.delete("/:id", verifyToken, authorizeRoles("r1", "r2"), VehiclesController.delete);
-;
 
 module.exports = router;

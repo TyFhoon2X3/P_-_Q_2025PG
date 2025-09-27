@@ -3,7 +3,7 @@ import "../styles/table.css";
 import "../styles/modal.css";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
-
+import Swal from "sweetalert2";
 export default function AdminCustomers() {
   const [customers, setCustomers] = useState([]);
   const [keyword, setKeyword] = useState("");
@@ -97,15 +97,41 @@ export default function AdminCustomers() {
     }
   };
 
-  const onDelete = async (row) => {
-    if (!window.confirm(`ลบลูกค้า "${row.name}" ?`)) return;
-    try {
-      await api(`/api/customers/${row.user_id}`, { method: "DELETE" });
-      await fetchCustomers();
-    } catch (err) {
-      alert("ลบไม่สำเร็จ: " + err.message);
-    }
-  };
+
+const onDelete = async (row) => {
+  const result = await Swal.fire({
+    title: `ลบลูกค้า "${row.name}" ?`,
+    text: "การลบนี้ไม่สามารถย้อนกลับได้",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "ใช่, ลบเลย",
+    cancelButtonText: "ยกเลิก",
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    await api(`/api/customers/${row.user_id}`, { method: "DELETE" });
+    await fetchCustomers();
+
+    Swal.fire({
+      title: "สำเร็จ!",
+      text: "ลบลูกค้าเรียบร้อยแล้ว",
+      icon: "success",
+      timer: 2000,
+      showConfirmButton: false,
+    });
+  } catch (err) {
+    Swal.fire({
+      title: "ลบไม่สำเร็จ",
+      text: err.message,
+      icon: "error",
+    });
+  }
+};
+
 
   return (
     <div

@@ -26,6 +26,7 @@ export default function Navbar() {
         <>
           <NavLink to="/admin-dashboard">แดชบอร์ดผู้ดูแลระบบ</NavLink>
           <NavLink to="/admin/customers">ลูกค้า</NavLink>
+          <NavLink to="/admin/vehicles">รถของลูกค้า</NavLink>
           <NavLink to="/admin/services">บริการ</NavLink>
           <NavLink to="/admin/parts">อะไหล่</NavLink>
         </>

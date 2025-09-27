@@ -1,11 +1,13 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
+
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserDashboard from "./pages/UserDashboard";
 import AdminCustomers from "./pages/AdminCustomers";
+import AdminVehiclesPage from "./pages/AdminVehiclesPage";  // ✅ import แค่ครั้งเดียว
 import BookingList from "./pages/BookingList";
 import BookingDetail from "./pages/BookingDetail";
 import MyVehicles from "./pages/MyVehicles";
@@ -13,7 +15,6 @@ import BookService from "./pages/BookService";
 
 function AppRoutes() {
   const location = useLocation();
-  // ซ่อน Navbar ถ้าอยู่หน้า Login/Register
   const hideNavbar = ["/login", "/register"].includes(location.pathname);
 
   return (
@@ -42,6 +43,24 @@ function AppRoutes() {
           }
         />
         <Route
+          path="/admin/vehicles"
+          element={
+            <ProtectedRoute allowedRoles={["r1"]}>
+              <AdminVehiclesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* User only */}
+        <Route
+          path="/user-dashboard"
+          element={
+            <ProtectedRoute allowedRoles={["r2"]}>
+              <UserDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/my-vehicles"
           element={
             <ProtectedRoute allowedRoles={["r2"]}>
@@ -57,17 +76,8 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
-        {/* User only */}
-        <Route
-          path="/user-dashboard"
-          element={
-            <ProtectedRoute allowedRoles={["r2"]}>
-              <UserDashboard />
-            </ProtectedRoute>
-          }
-        />
 
-        {/* Shared (admin + user) */}
+        {/* Shared */}
         <Route
           path="/bookings"
           element={
@@ -88,6 +98,11 @@ function AppRoutes() {
     </>
   );
 }
+console.log("AdminDashboard =", AdminDashboard);
+console.log("AdminVehiclesPage =", AdminVehiclesPage);
+console.log("Navbar =", Navbar);
+console.log("ProtectedRoute =", ProtectedRoute);
+
 
 export default function App() {
   return (
