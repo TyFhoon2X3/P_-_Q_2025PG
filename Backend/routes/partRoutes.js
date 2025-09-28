@@ -1,14 +1,21 @@
 const express = require("express");
 const router = express.Router();
 const { PartsController } = require("../controllers/PartsController");
-const authenticateToken = require("../middleware/authMiddleware");
+const { verifyToken, authorizeRoles } = require("../middleware/authenticateUser");
 
-router.use(authenticateToken);
+// GET all
+router.get("/", verifyToken, authorizeRoles("r1"), PartsController.getParts);
 
-router.get("/", PartsController.getParts);
-router.get("/:id", PartsController.getById);
-router.post("/", PartsController.createPart);
-router.put("/:id", PartsController.updatePart);
-router.delete("/:id", PartsController.deletePart);
+// GET by id
+router.get("/:id", verifyToken, authorizeRoles("r1"), PartsController.getById);
+
+// CREATE
+router.post("/", verifyToken, authorizeRoles("r1"), PartsController.createPart);
+
+// UPDATE
+router.put("/:id", verifyToken, authorizeRoles("r1"), PartsController.updatePart);
+
+// DELETE
+router.delete("/:id", verifyToken, authorizeRoles("r1"), PartsController.deletePart);
 
 module.exports = router;

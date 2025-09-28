@@ -12,7 +12,7 @@ import BookingList from "./pages/BookingList";
 import BookingDetail from "./pages/BookingDetail";
 import MyVehicles from "./pages/MyVehicles";
 import BookService from "./pages/BookService";
-
+import PartsManager from "./pages/PartsManager";
 function AppRoutes() {
   const location = useLocation();
   const hideNavbar = ["/login", "/register"].includes(location.pathname);
@@ -47,6 +47,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={["r1"]}>
               <AdminVehiclesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/parts"
+          element={
+            <ProtectedRoute allowedRoles={["r1"]}>
+              <PartsManager />
             </ProtectedRoute>
           }
         />

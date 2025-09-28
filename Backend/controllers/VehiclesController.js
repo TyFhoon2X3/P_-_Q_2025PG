@@ -1,22 +1,21 @@
 const pool = require("../db/db");
 
 const VehiclesController = {
-  // CREATE vehicle
   async create(req, res) {
     const { license_plate, model, id_brand, id_type, id_user } = req.body;
 
-    // ✅ แยก role
+
     let ownerId;
     if (req.user.roleid === "r1") {
-      ownerId = id_user; // admin → ใช้ค่าจาก form
+      ownerId = id_user; 
     } else if (req.user.roleid === "r2") {
-      ownerId = req.user.user_id; // user → ใช้ของตัวเอง
+      ownerId = req.user.user_id; 
     } else {
       return res.status(403).json({ error: "Forbidden: insufficient role" });
     }
 
     try {
-      // ตรวจสอบ FK
+     
       const [brand, type] = await Promise.all([
         pool.query("SELECT 1 FROM vehicle_brands WHERE id_brand = $1", [id_brand]),
         pool.query("SELECT 1 FROM vehicle_types WHERE id_type = $1", [id_type]),
@@ -64,7 +63,7 @@ const VehiclesController = {
     }
   },
 
-  // GET vehicles ของ user (JWT)
+
   async getMine(req, res) {
     try {
       const userId = req.user.user_id;
@@ -109,7 +108,7 @@ const VehiclesController = {
     }
   },
 
-  // UPDATE
+
   async update(req, res) {
     const { id } = req.params;
     const { license_plate, model, id_brand, id_type, id_user } = req.body;
@@ -122,7 +121,7 @@ const VehiclesController = {
 
       let ownerId = check.rows[0].user_id;
 
-      // ✅ admin เปลี่ยนเจ้าของได้
+
       if (req.user.roleid === "r1" && id_user) {
         ownerId = id_user;
       }

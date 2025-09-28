@@ -1,8 +1,18 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "../styles/PartsManager.css";
+import Swal from "sweetalert2";
+const API_URL = "http://localhost:3000/api/parts"; // ✅ backend port ปกติจะไม่ใช่ 3000
 
-const API_URL = "http://localhost:3000/api/parts"; // เปลี่ยนตาม API คุณ
+// helper: ดึง token จาก localStorage
+const getAuthHeader = () => {
+  const token = localStorage.getItem("token"); // หลังจาก login แล้วต้องเซฟ token
+  return {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  };
+};
 
 function PartsManager() {
   const [parts, setParts] = useState([]);
@@ -21,8 +31,9 @@ function PartsManager() {
 
   const fetchParts = async () => {
     try {
-      const res = await axios.get(API_URL);
-      setParts(res.data.parts);
+      const res = await axios.get(API_URL, getAuthHeader());
+      console.log("API response:", res.data);
+      setParts(res.data.parts); // ✅ ตรงกับโครงสร้าง API
     } catch (err) {
       console.error("Error loading parts:", err);
     }
@@ -34,12 +45,11 @@ function PartsManager() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     try {
       if (editingId) {
-        await axios.put(`${API_URL}/${editingId}`, form);
+        await axios.put(`${API_URL}/${editingId}`, form, getAuthHeader());
       } else {
-        await axios.post(API_URL, form);
+        await axios.post(API_URL, form, getAuthHeader());
       }
       setForm({
         part_id: "",
@@ -60,16 +70,40 @@ function PartsManager() {
     setEditingId(part.part_id);
   };
 
-  const handleDelete = async (id) => {
-    if (window.confirm("แน่ใจว่าจะลบอะไหล่นี้?")) {
-      try {
-        await axios.delete(`${API_URL}/${id}`);
-        fetchParts();
-      } catch (err) {
-        console.error("Delete error:", err);
-      }
-    }
-  };
+ const handleDelete = async (id) => {
+  const result = await Swal.fire({
+    title: "คุณแน่ใจหรือไม่?",
+    text: "คุณต้องการลบอะไหล่นี้จริง ๆ ใช่หรือไม่",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "ใช่, ลบเลย",
+    cancelButtonText: "ยกเลิก",
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+    await axios.delete(`${API_URL}/${id}`, getAuthHeader());
+    await fetchParts();
+
+    Swal.fire({
+      title: "ลบสำเร็จ!",
+      text: "อะไหล่ถูกลบเรียบร้อยแล้ว",
+      icon: "success",
+      timer: 2000,
+      showConfirmButton: false,
+    });
+  } catch (err) {
+    console.error("Delete error:", err);
+    Swal.fire({
+      title: "ผิดพลาด",
+      text: "ไม่สามารถลบอะไหล่ได้",
+      icon: "error",
+    });
+  }
+};
 
   return (
     <div className="parts-container">
@@ -156,8 +190,15 @@ function PartsManager() {
               <td>{part.quantity}</td>
               <td>{part.unit_price}</td>
               <td>
-                <button className="edit-btn" onClick={() => handleEdit(part)}>แก้ไข</button>
-                <button className="delete-btn" onClick={() => handleDelete(part.part_id)}>ลบ</button>
+                <button className="edit-btn" onClick={() => handleEdit(part)}>
+                  แก้ไข
+                </button>
+                <button
+                  className="delete-btn"
+                  onClick={() => handleDelete(part.part_id)}
+                >
+                  ลบ
+                </button>
               </td>
             </tr>
           ))}
