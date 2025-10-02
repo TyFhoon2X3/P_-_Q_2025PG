@@ -3,6 +3,8 @@ import axios from "axios";
 import {
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   Tooltip,
@@ -73,17 +75,17 @@ export default function VehicleStatsPage() {
     quantity: Number(p.quantity),
   }));
 
-  // กราฟวงกลม: สัดส่วนยี่ห้ออะไหล่
+  // กราฟเส้น: สัดส่วนยี่ห้ออะไหล่
   const brandCounts = parts.reduce((acc, p) => {
     acc[p.marque] = (acc[p.marque] || 0) + Number(p.quantity);
     return acc;
   }, {});
-  const pieParts = Object.keys(brandCounts).map((k) => ({
+  const lineParts = Object.keys(brandCounts).map((k) => ({
     name: k,
     value: brandCounts[k],
   }));
 
-  const COLORS = ["#8884d8", "#82ca9d", "#ffc658", "#ff7f50", "#a4de6c", "#d0ed57"];
+  const COLORS = ["#4f46e5", "#10b981", "#f97316", "#8884d8", "#82ca9d", "#ffc658"];
 
   return (
     <div className="p-6">
@@ -137,27 +139,28 @@ export default function VehicleStatsPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* กราฟสัดส่วนยี่ห้ออะไหล่ */}
+        {/* กราฟเส้น สัดส่วนยี่ห้ออะไหล่ */}
         <div className="bg-white shadow-lg rounded-xl p-4">
           <h2 className="text-lg font-semibold mb-4">⚙️ สัดส่วนยี่ห้ออะไหล่</h2>
-          <ResponsiveContainer width="100%" height={280}>
-            <PieChart>
-              <Pie
-                data={pieParts}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={100}
-                label
-              >
-                {pieParts.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart
+              data={lineParts}
+              margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" />
+              <YAxis />
               <Tooltip />
               <Legend />
-            </PieChart>
+              <Line
+                type="monotone"
+                dataKey="value"
+                stroke="#8884d8"
+                strokeWidth={3}
+                dot={{ r: 5, stroke: "#fff", strokeWidth: 2, fill: "#8884d8" }}
+                label={{ position: "top" }}
+              />
+            </LineChart>
           </ResponsiveContainer>
         </div>
       </div>
