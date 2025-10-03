@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useNavigate } from "react-router-dom";
-import Swal from 'sweetalert2'
+import Swal from "sweetalert2";
+
 export default function BookService() {
   const nav = useNavigate();
   const [vehicles, setVehicles] = useState([]);
@@ -17,6 +18,16 @@ export default function BookService() {
 
   // ✅ โหลดเฉพาะรถของ user ที่ login
   useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({
+        title: "กรุณาเข้าสู่ระบบ",
+        icon: "warning",
+      });
+      nav("/login");
+      return;
+    }
+
     api("/api/vehicles/mine")
       .then((data) => {
         if (data.success === false) {
@@ -31,7 +42,7 @@ export default function BookService() {
         setError("เกิดข้อผิดพลาดในการโหลดข้อมูลรถ");
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [nav]);
 
   const onChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -48,11 +59,23 @@ export default function BookService() {
         method: "POST",
         body: form,
       });
+
       Swal.fire({
-        title: "✅ จองสำเร็จครับ",
+        title: "✅ จองสำเร็จ",
+        text: "ระบบได้บันทึกการจองของคุณแล้ว",
         icon: "success",
-        draggable: true
+        confirmButtonText: "ตกลง",
       });
+
+      // reset form
+      setForm({
+        vehicle_id: "",
+        date: "",
+        time: "",
+        description: "",
+        transport_required: false,
+      });
+
       nav("/bookings");
     } catch (err) {
       Swal.fire({
@@ -60,7 +83,6 @@ export default function BookService() {
         text: "❌ จองไม่สำเร็จ: " + err.message,
         icon: "error",
       });
-   
     }
   };
 
@@ -77,6 +99,7 @@ export default function BookService() {
         {error && <p style={{ color: "red" }}>{error}</p>}
 
         <form onSubmit={submit}>
+          {/* เลือกรถ */}
           <div className="label">เลือกรถ</div>
           <select
             name="vehicle_id"
@@ -93,6 +116,7 @@ export default function BookService() {
             ))}
           </select>
 
+          {/* วันที่ */}
           <div className="label">วันที่</div>
           <input
             type="date"
@@ -101,8 +125,10 @@ export default function BookService() {
             onChange={onChange}
             className="input"
             required
+            min={new Date().toISOString().split("T")[0]} // กันเลือกวันที่ย้อนหลัง
           />
 
+          {/* เวลา */}
           <div className="label">เวลา</div>
           <input
             type="time"
@@ -111,8 +137,11 @@ export default function BookService() {
             onChange={onChange}
             className="input"
             required
+            min="08:00"
+            max="18:00"
           />
 
+          {/* รายละเอียด */}
           <div className="label">รายละเอียดการซ่อม</div>
           <textarea
             name="description"
@@ -123,6 +152,7 @@ export default function BookService() {
             required
           />
 
+          {/* Checkbox รับรถ */}
           <label
             style={{
               display: "flex",
@@ -140,6 +170,7 @@ export default function BookService() {
             ต้องการให้ทางร้านรับรถถึงที่
           </label>
 
+          {/* Submit */}
           <button
             className="btn-primary"
             type="submit"

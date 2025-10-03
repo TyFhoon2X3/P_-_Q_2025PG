@@ -106,10 +106,7 @@ function AppRoutes() {
     </>
   );
 }
-console.log("AdminDashboard =", AdminDashboard);
-console.log("AdminVehiclesPage =", AdminVehiclesPage);
-console.log("Navbar =", Navbar);
-console.log("ProtectedRoute =", ProtectedRoute);
+
 
 
 export default function App() {

@@ -20,7 +20,6 @@ const vehicleRoutes = require("./routes/vehicleRoutes");
 
 // ...
 
-
 // Load .env
 dotenv.config();
 
@@ -57,6 +56,7 @@ app.use("/api/vehicles", vehicleRoutes);
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
 });
+
 
 // Start server
 const PORT = process.env.PORT || 3000;

@@ -1,15 +1,14 @@
-// routes/bookingRoutes.js
 const express = require("express");
 const router = express.Router();
 const BookingController = require("../controllers/bookingController");
+const { verifyToken } = require("../middleware/authenticateUser");
 
-// GET booking by ID
-router.get("/:id", BookingController.getById);
-
-// ภายหลังจะเพิ่ม CRUD อื่น ๆ
-router.get("/", BookingController.getAll);
-router.post("/", BookingController.create);
-router.put("/:id", BookingController.update);
-router.delete("/:id", BookingController.delete);
+// ✅ แค่ verifyToken พอ ไม่ต้อง authorizeRoles
+router.get("/mine", verifyToken, BookingController.getMine);
+router.get("/", verifyToken, BookingController.getAll);
+router.get("/:id", verifyToken, BookingController.getById);
+router.post("/", verifyToken, BookingController.create);
+router.put("/:id", verifyToken, BookingController.update);
+router.delete("/:id", verifyToken, BookingController.delete);
 
 module.exports = router;

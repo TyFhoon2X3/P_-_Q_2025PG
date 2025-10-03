@@ -1,9 +1,10 @@
+// middleware/authenticateUser.js
 const jwt = require("jsonwebtoken");
 
-// 🔹 ตรวจสอบ JWT
+// ตรวจสอบ JWT
 function verifyToken(req, res, next) {
   const authHeader = req.headers["authorization"];
-  const token = authHeader && authHeader.split(" ")[1]; // คาดหวัง "Bearer <token>"
+  const token = authHeader && authHeader.split(" ")[1]; // Bearer <token>
 
   if (!token) {
     return res.status(401).json({ success: false, message: "No token provided" });
@@ -13,15 +14,18 @@ function verifyToken(req, res, next) {
     if (err) {
       return res.status(403).json({ success: false, message: "Invalid or expired token" });
     }
-    req.user = decoded; // เก็บข้อมูล user ไว้ใช้ต่อ
+    req.user = decoded; 
     next();
   });
 }
 
-// 🔹 ตรวจสอบ Role (เช่น admin, user)
+// ตรวจสอบ Role
 function authorizeRoles(...roles) {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.roleid)) {
+    // ✅ ดึง role จากหลาย field เผื่อ JWT ใช้ชื่อไม่ตรง
+    const role = req.user?.roleid || req.user?.role || req.user?.role_id;
+
+    if (!role || !roles.includes(role)) {
       return res.status(403).json({ success: false, message: "Forbidden: insufficient role" });
     }
     next();

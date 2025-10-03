@@ -23,4 +23,4 @@ router.put("/:id", verifyToken, authorizeRoles("r1", "r2"), VehiclesController.u
 // Admin + User → ลบ
 router.delete("/:id", verifyToken, authorizeRoles("r1", "r2"), VehiclesController.delete);
 
-module.exports = router;
+module.exports = router;    
