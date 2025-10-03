@@ -6,11 +6,13 @@ import "../styles/TableForBook.css";
 
 export default function MyBookings() {
   const [bookings, setBookings] = useState([]);
+  const [filteredBookings, setFilteredBookings] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const navigate = useNavigate();
 
-  // ฟังก์ชันแปลงสถานะ
   const getStatus = (status_id) => {
     switch (status_id) {
       case 1:
@@ -26,7 +28,6 @@ export default function MyBookings() {
     }
   };
 
-  // โหลด booking
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -47,8 +48,10 @@ export default function MyBookings() {
       if (!data || data.success === false) {
         setError(data?.message || "ไม่สามารถโหลดข้อมูลการจองได้");
         setBookings([]);
+        setFilteredBookings([]);
       } else {
         setBookings(data.bookings || []);
+        setFilteredBookings(data.bookings || []);
       }
     } catch (err) {
       console.error("Error loading bookings:", err);
@@ -58,7 +61,28 @@ export default function MyBookings() {
     }
   };
 
-  // ยกเลิก booking
+  // กรองการจอง
+  useEffect(() => {
+    let filtered = bookings;
+
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (b) =>
+          b.license_plate?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          b.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          b.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(
+        (b) => String(b.status_id) === String(statusFilter)
+      );
+    }
+
+    setFilteredBookings(filtered);
+  }, [searchTerm, statusFilter, bookings]);
+
   const cancelBooking = async (id) => {
     const result = await Swal.fire({
       title: "ยืนยันการยกเลิก?",
@@ -76,21 +100,17 @@ export default function MyBookings() {
         method: "PUT",
         body: { status_id: 4 },
       });
-
       Swal.fire({
         title: "สำเร็จ ✅",
         text: "ยกเลิกการจองเรียบร้อยแล้ว",
         icon: "success",
-        confirmButtonText: "ตกลง",
       });
-
       fetchBookings();
     } catch (err) {
       Swal.fire({
         title: "❌ ไม่สำเร็จ",
         text: err.message || "เกิดข้อผิดพลาด",
         icon: "error",
-        confirmButtonText: "ตกลง",
       });
     }
   };
@@ -105,40 +125,54 @@ export default function MyBookings() {
 
   return (
     <div className="page-container">
-      <h1 className="page-title" role="heading" aria-level="1">
-        📋 การจองของฉัน
-      </h1>
+      <h1 className="page-title">📋 การจองของฉัน</h1>
 
-      {error && (
-        <p className="error" role="alert">
-          {error}
-        </p>
-      )}
+      {error && <p className="error">{error}</p>}
 
-      {bookings.length === 0 ? (
-        <p className="no-data">คุณยังไม่มีการจอง</p>
+      {/* Search + Filter */}
+      <div className="filter-bar">
+        <input
+          type="text"
+          placeholder="🔍 ค้นหารถ / รุ่น / รายละเอียด..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="all">📌 ทุกสถานะ</option>
+          <option value="1">⏳ รอดำเนินการ</option>
+          <option value="2">🔧 กำลังซ่อม</option>
+          <option value="3">✅ เสร็จสิ้น</option>
+          <option value="4">❌ ยกเลิก</option>
+        </select>
+      </div>
+
+      {filteredBookings.length === 0 ? (
+        <p className="no-data">ไม่พบการจองที่ตรงกับเงื่อนไข</p>
       ) : (
-        <div className="table-container">
-          <table className="table big-table" aria-label="ตารางการจองของฉัน">
+        <div className="table-container wide">
+          <table className="table big-table">
             <thead>
               <tr>
-                <th scope="col">วันที่</th>
-                <th scope="col">เวลา</th>
-                <th scope="col">รถ</th>
-                <th scope="col">รายละเอียด</th>
-                <th scope="col">สถานะ</th>
-                <th scope="col">ค่าใช้จ่ายรวม</th>
-                <th scope="col">การจัดการ</th>
+                <th>วันที่</th>
+                <th>เวลา</th>
+                <th>รถ</th>
+                <th>รายละเอียด</th>
+                <th>สถานะ</th>
+                <th>ค่าใช้จ่ายรวม</th>
+                <th>รายละเอียด</th>
+                <th>ยกเลิก</th>
               </tr>
             </thead>
             <tbody>
-              {bookings.map((booking) => {
+              {filteredBookings.map((booking) => {
                 const status = getStatus(booking.status_id);
                 return (
                   <tr key={booking.booking_id}>
-                    <td>
-                      {new Date(booking.date).toLocaleDateString("th-TH")}
-                    </td>
+                    <td>{new Date(booking.date).toLocaleDateString("th-TH")}</td>
                     <td>{booking.time}</td>
                     <td>
                       <span className="badge-car">
@@ -147,10 +181,7 @@ export default function MyBookings() {
                     </td>
                     <td>{booking.description || "-"}</td>
                     <td>
-                      <span
-                        className={`status-badge ${status.className}`}
-                        aria-label={`สถานะ: ${status.label}`}
-                      >
+                      <span className={`status-badge ${status.className}`}>
                         {status.label}
                       </span>
                     </td>
@@ -159,19 +190,18 @@ export default function MyBookings() {
                         {Number(booking.total_price || 0).toLocaleString()} ฿
                       </span>
                     </td>
-                    <td className="action-buttons">
-                      <Link
-                        to={`/bookings/${booking.booking_id}`}
-                        className="btn btn-detail"
-                        aria-label="ดูรายละเอียดการจอง"
-                      >
+                    {/* ปุ่มรายละเอียด */}
+                    <td>
+                      <Link to={`/bookings/${booking.booking_id}`} className="btn btn-detail">
                         🔍 รายละเอียด
                       </Link>
+                    </td>
+                    {/* ปุ่มยกเลิก */}
+                    <td>
                       {booking.status_id === 1 && (
                         <button
                           onClick={() => cancelBooking(booking.booking_id)}
                           className="btn btn-cancel"
-                          aria-label="ยกเลิกการจอง"
                         >
                           ❌ ยกเลิก
                         </button>
