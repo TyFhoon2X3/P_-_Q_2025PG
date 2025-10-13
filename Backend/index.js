@@ -17,7 +17,7 @@ const brandRoutes = require("./routes/brand");
 const profileRoutes = require("./routes/profile");
 const bookingRoutes = require("./routes/bookingRoutes");
 const vehicleRoutes = require("./routes/vehicleRoutes");
-
+const repairItemRoutes = require("./routes/repairItemRoutes");
 // ...
 
 // Load .env
@@ -51,7 +51,7 @@ app.use("/api/brands", brandRoutes);
 app.use("/api/profile", profileRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/vehicles", vehicleRoutes);
-
+app.use("/api/repair-items", repairItemRoutes);
 // Optional: route not found handler
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });

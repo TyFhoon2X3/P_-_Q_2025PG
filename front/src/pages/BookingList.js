@@ -1,217 +1,204 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import { Link, useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import "../styles/TableForBook.css";
+import "../styles/UserRepair.css";
 
-export default function MyBookings() {
+export default function UserRepairStatus() {
   const [bookings, setBookings] = useState([]);
-  const [filteredBookings, setFilteredBookings] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const navigate = useNavigate();
-
-  const getStatus = (status_id) => {
-    switch (status_id) {
-      case 1:
-        return { label: "⏳ รอดำเนินการ", className: "status-pending" };
-      case 2:
-        return { label: "🔧 กำลังซ่อม", className: "status-progress" };
-      case 3:
-        return { label: "✅ เสร็จสิ้น", className: "status-done" };
-      case 4:
-        return { label: "❌ ยกเลิก", className: "status-cancel" };
-      default:
-        return { label: "ไม่ทราบสถานะ", className: "status-unknown" };
-    }
-  };
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [repairItems, setRepairItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) {
-      Swal.fire({
-        title: "กรุณาเข้าสู่ระบบ",
-        icon: "warning",
-        confirmButtonText: "ตกลง",
-      });
-      navigate("/login");
-      return;
-    }
-    fetchBookings();
-  }, [navigate]);
+    fetchMyBookings();
+  }, []);
 
-  const fetchBookings = async () => {
+  // ✅ ดึงข้อมูลเฉพาะของ user ปัจจุบัน
+  const fetchMyBookings = async () => {
     try {
       const data = await api("/api/bookings/mine");
-      if (!data || data.success === false) {
-        setError(data?.message || "ไม่สามารถโหลดข้อมูลการจองได้");
-        setBookings([]);
-        setFilteredBookings([]);
-      } else {
-        setBookings(data.bookings || []);
-        setFilteredBookings(data.bookings || []);
+      if (data.success) {
+        const sorted = data.bookings.sort((a, b) => new Date(b.date) - new Date(a.date));
+        setBookings(sorted);
       }
-    } catch (err) {
-      console.error("Error loading bookings:", err);
-      setError("เกิดข้อผิดพลาดในการโหลดข้อมูลการจอง");
+    } catch {
+      Swal.fire("❌", "โหลดข้อมูลงานซ่อมไม่สำเร็จ", "error");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  // กรองการจอง
-  useEffect(() => {
-    let filtered = bookings;
+  const getStatus = (id) => {
+    switch (id) {
+      case 1:
+        return { text: "⏳ รอช่าง", class: "pending" };
+      case 2:
+        return { text: "🔧 กำลังซ่อม", class: "progress" };
+      case 3:
+        return { text: "✅ เสร็จแล้ว", class: "done" };
+      case 4:
+        return { text: "❌ ยกเลิก", class: "cancel" };
+      default:
+        return { text: "❔ ไม่ทราบ", class: "unknown" };
+    }
+  };
 
-    if (searchTerm) {
-      filtered = filtered.filter(
-        (b) =>
-          b.license_plate?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          b.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          b.description?.toLowerCase().includes(searchTerm.toLowerCase())
-      );
+  // ✅ เปิดรายละเอียดงานซ่อม
+  const openPopup = async (booking_id) => {
+    setSelectedBooking(booking_id);
+    try {
+      const data = await api(`/api/repair-items/${booking_id}`);
+      if (data.success) setRepairItems(data.items || []);
+    } catch {
+      Swal.fire("❌", "โหลดข้อมูลอุปกรณ์ไม่สำเร็จ", "error");
+    }
+  };
+
+  const closePopup = () => {
+    setSelectedBooking(null);
+    setRepairItems([]);
+  };
+
+  // ✅ ยกเลิกงานซ่อม
+  const cancelBooking = async (booking_id, status_id) => {
+    if (status_id !== 1) {
+      return Swal.fire("⚠️", "สามารถยกเลิกได้เฉพาะงานที่ยังรอช่างเท่านั้น", "info");
     }
 
-    if (statusFilter !== "all") {
-      filtered = filtered.filter(
-        (b) => String(b.status_id) === String(statusFilter)
-      );
-    }
-
-    setFilteredBookings(filtered);
-  }, [searchTerm, statusFilter, bookings]);
-
-  const cancelBooking = async (id) => {
     const result = await Swal.fire({
       title: "ยืนยันการยกเลิก?",
-      text: "การยกเลิกนี้ไม่สามารถย้อนกลับได้",
+      text: "การยกเลิกไม่สามารถย้อนกลับได้",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonText: "ใช่, ยกเลิกเลย",
-      cancelButtonText: "ไม่",
+      confirmButtonText: "ยืนยัน",
+      cancelButtonText: "กลับ",
     });
-
     if (!result.isConfirmed) return;
 
     try {
-      await api(`/api/bookings/${id}`, {
+      const res = await api(`/api/bookings/${booking_id}`, {
         method: "PUT",
         body: { status_id: 4 },
       });
-      Swal.fire({
-        title: "สำเร็จ ✅",
-        text: "ยกเลิกการจองเรียบร้อยแล้ว",
-        icon: "success",
-      });
-      fetchBookings();
-    } catch (err) {
-      Swal.fire({
-        title: "❌ ไม่สำเร็จ",
-        text: err.message || "เกิดข้อผิดพลาด",
-        icon: "error",
-      });
+      if (res.success) {
+        Swal.fire("✅", "ยกเลิกสำเร็จ", "success");
+        fetchMyBookings();
+      }
+    } catch {
+      Swal.fire("❌", "ไม่สามารถยกเลิกได้", "error");
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="loading" role="status">
-        ⏳ กำลังโหลดข้อมูลการจอง...
-      </div>
-    );
-  }
+  const total = repairItems.reduce(
+    (sum, i) => sum + Number(i.unit_price) * Number(i.quantity),
+    0
+  );
+
+  if (loading) return <div className="loading">⏳ กำลังโหลด...</div>;
 
   return (
-    <div className="page-container">
-      <h1 className="page-title">📋 การจองของฉัน</h1>
+    <div className="user-page">
+      <h1 className="user-title">🚗 งานซ่อมของฉัน</h1>
 
-      {error && <p className="error">{error}</p>}
-
-      {/* Search + Filter */}
-      <div className="filter-bar">
-        <input
-          type="text"
-          placeholder="🔍 ค้นหารถ / รุ่น / รายละเอียด..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">📌 ทุกสถานะ</option>
-          <option value="1">⏳ รอดำเนินการ</option>
-          <option value="2">🔧 กำลังซ่อม</option>
-          <option value="3">✅ เสร็จสิ้น</option>
-          <option value="4">❌ ยกเลิก</option>
-        </select>
-      </div>
-
-      {filteredBookings.length === 0 ? (
-        <p className="no-data">ไม่พบการจองที่ตรงกับเงื่อนไข</p>
-      ) : (
-        <div className="table-container wide">
-          <table className="table big-table">
-            <thead>
-              <tr>
-                <th>วันที่</th>
-                <th>เวลา</th>
-                <th>รถ</th>
-                <th>รายละเอียด</th>
-                <th>สถานะ</th>
-                <th>ค่าใช้จ่ายรวม</th>
-                <th>รายละเอียด</th>
-                <th>ยกเลิก</th>
+      <table className="user-table">
+        <thead>
+          <tr>
+            <th>รหัส</th>
+            <th>วันที่</th>
+            <th>เวลา</th>
+            <th>รถ</th>
+            <th>รายละเอียด</th>
+            <th>สถานะ</th>
+            <th>จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          {bookings.map((b) => {
+            const s = getStatus(b.status_id);
+            return (
+              <tr key={b.booking_id}>
+                <td>{b.booking_id}</td>
+                <td>
+                  {new Date(b.date).toLocaleDateString("th-TH", {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </td>
+                <td>
+                  {b.time
+                    ? new Date(`1970-01-01T${b.time}`).toLocaleTimeString("th-TH", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }) + " น."
+                    : "-"}
+                </td>
+                <td>
+                  {b.license_plate} ({b.model})
+                </td>
+                <td>{b.description || "-"}</td>
+                <td>
+                  <span className={`status-badge ${s.class}`}>{s.text}</span>
+                </td>
+                <td className="action-buttons">
+                  <button
+                    className="btn btn-detail"
+                    onClick={() => openPopup(b.booking_id)}
+                  >
+                    👁️ ดู
+                  </button>
+                  {b.status_id === 1 && (
+                    <button
+                      className="btn btn-cancel"
+                      onClick={() => cancelBooking(b.booking_id, b.status_id)}
+                    >
+                      ❌ ยกเลิก
+                    </button>
+                  )}
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filteredBookings.map((booking) => {
-                const status = getStatus(booking.status_id);
-                return (
-                  <tr key={booking.booking_id}>
-                    <td>{new Date(booking.date).toLocaleDateString("th-TH")}</td>
-                    <td>{booking.time}</td>
-                    <td>
-                      <span className="badge-car">
-                        {booking.license_plate} ({booking.model})
+            );
+          })}
+        </tbody>
+      </table>
+
+      {selectedBooking && (
+        <div className="popup-overlay">
+          <div className="popup-card fancy-popup">
+            <h4 className="popup-title">
+              🔧 รายละเอียดงานซ่อม #{selectedBooking}
+            </h4>
+            <hr className="divider" />
+
+            <div className="repair-grid">
+              {repairItems.length > 0 ? (
+                repairItems.map((i) => (
+                  <div key={i.part_id} className="repair-card">
+                    <div className="repair-name">{i.partname}</div>
+                    <div className="repair-info">
+                      <span>จำนวน: {i.quantity}</span>
+                      <span>
+                        ราคา/หน่วย: {Number(i.unit_price).toLocaleString()} ฿
                       </span>
-                    </td>
-                    <td>{booking.description || "-"}</td>
-                    <td>
-                      <span className={`status-badge ${status.className}`}>
-                        {status.label}
+                      <span className="total">
+                        รวม: {(i.unit_price * i.quantity).toLocaleString()} ฿
                       </span>
-                    </td>
-                    <td>
-                      <span className="price">
-                        {Number(booking.total_price || 0).toLocaleString()} ฿
-                      </span>
-                    </td>
-                    {/* ปุ่มรายละเอียด */}
-                    <td>
-                      <Link to={`/bookings/${booking.booking_id}`} className="btn btn-detail">
-                        🔍 รายละเอียด
-                      </Link>
-                    </td>
-                    {/* ปุ่มยกเลิก */}
-                    <td>
-                      {booking.status_id === 1 && (
-                        <button
-                          onClick={() => cancelBooking(booking.booking_id)}
-                          className="btn btn-cancel"
-                        >
-                          ❌ ยกเลิก
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="no-item">ไม่มีข้อมูลอุปกรณ์</p>
+              )}
+            </div>
+
+            <div className="total-section">
+              💰 รวมทั้งหมด: <b>{total.toLocaleString()} ฿</b>
+            </div>
+
+            <button className="btn btn-secondary" onClick={closePopup}>
+              ปิด
+            </button>
+          </div>
         </div>
       )}
     </div>
