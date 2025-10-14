@@ -2,6 +2,7 @@
 const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const path = require("path");
 
 // Controllers
 const { register } = require("./controllers/registerController");
@@ -18,32 +19,44 @@ const profileRoutes = require("./routes/profile");
 const bookingRoutes = require("./routes/bookingRoutes");
 const vehicleRoutes = require("./routes/vehicleRoutes");
 const repairItemRoutes = require("./routes/repairItemRoutes");
-// ...
 
 // Load .env
 dotenv.config();
 
 const app = express();
 
-// CORS configuration
+// ====================================
+// ✅ 1. CORS Configuration
+// ====================================
 app.use(
   cors({
-    origin: "http://localhost:8000", // ปรับตาม frontend ของคุณ
+    origin: "http://localhost:8000", // URL ของ React frontend
     credentials: true,
   })
 );
 
-// Body parser
+// ====================================
+// ✅ 2. Body Parser
+// ====================================
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// ===== Public routes =====
+// ====================================
+// ✅ 3. เปิด Static Folder สำหรับ uploads
+// ✅ (ต้องอยู่ก่อนการ mount routes ทั้งหมด)
+// ====================================
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// ====================================
+// ✅ 4. Public Routes (ไม่ต้อง JWT)
+// ====================================
 app.post("/api/login", login);
 app.post("/api/register", register);
 
-// ===== Protected routes (ภายหลังใส่ JWT middleware ได้) =====
+// ====================================
+// ✅ 5. Protected / Private Routes
+// ====================================
 app.use("/api/customers", customerRoutes);
-
-// ===== Other route mounts =====
 app.use("/api/roles", roleRoutes);
 app.use("/api/parts", partRoutes);
 app.use("/api/typecar", typeRoutes);
@@ -52,14 +65,18 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/repair-items", repairItemRoutes);
-// Optional: route not found handler
+
+// ====================================
+// ✅ 6. Default Route (404 handler)
+// ====================================
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
 });
 
-
-// Start server
+// ====================================
+// ✅ 7. Start Server
+// ====================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`🚀 Server is running on port ${PORT}`);
 });

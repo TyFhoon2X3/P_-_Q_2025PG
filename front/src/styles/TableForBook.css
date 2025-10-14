@@ -3,16 +3,19 @@
   margin: 1rem auto;
   padding: 1rem 2rem;
   font-family: "Prompt", sans-serif;
-  background-color: #f9fbfd;
+  background-color: #f4f6fc;
 }
 
+/* ─── Title ─────────────────────────────── */
 .page-title {
   text-align: center;
-  font-size: 1.8rem;
-  color: #333;
-  margin-bottom: 1rem;
+  font-size: 1.9rem;
+  color: #1a237e;
+  font-weight: 700;
+  margin-bottom: 1.2rem;
 }
 
+/* ─── Filter Bar ────────────────────────── */
 .filter-bar {
   display: flex;
   flex-wrap: wrap;
@@ -24,18 +27,40 @@
 .filter-bar input,
 .filter-bar select {
   padding: 0.6rem 0.9rem;
-  border: 1px solid #ccc;
+  border: 1px solid #ccd2e0;
   border-radius: 6px;
   font-size: 0.95rem;
-  outline: none;
+  background: white;
+  transition: all 0.2s ease;
 }
 
+.filter-bar input:focus,
+.filter-bar select:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.filter-bar .btn-primary {
+  background: linear-gradient(90deg, #4a90e2, #5b8def);
+  color: white;
+  border: none;
+  padding: 0.5rem 1.2rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: 0.2s;
+}
+
+.filter-bar .btn-primary:hover {
+  opacity: 0.9;
+}
+
+/* ─── Table ─────────────────────────────── */
 .table-container.wide {
   width: 100%;
   overflow-x: auto;
   border-radius: 10px;
   background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
 }
 
 .table {
@@ -53,46 +78,83 @@
 }
 
 .table th {
-  background: #f8fafc;
-  color: #444;
+  background: #e3f2fd;
+  color: #1a237e;
+  font-weight: 600;
 }
 
 .table tbody tr:hover {
-  background: #f3f7fa;
+  background: #f0f5ff;
   transition: 0.2s ease;
 }
 
-/* สถานะ */
-.badge.pending { background: #f0ad4e; color: white; padding: 0.4rem 0.8rem; border-radius: 5px; }
-.badge.progress { background: #0275d8; color: white; padding: 0.4rem 0.8rem; border-radius: 5px; }
-.badge.done { background: #5cb85c; color: white; padding: 0.4rem 0.8rem; border-radius: 5px; }
-.badge.cancel { background: #d9534f; color: white; padding: 0.4rem 0.8rem; border-radius: 5px; }
+/* ─── Badge สถานะ ───────────────────────── */
+.badge {
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-weight: 600;
+  color: #fff;
+}
 
-/* ปุ่ม */
+.badge.pending {
+  background: #ffca28; /* เหลืองทอง */
+  color: #333;
+}
+.badge.progress {
+  background: #42a5f5;
+}
+.badge.done {
+  background: #66bb6a;
+}
+.badge.cancel {
+  background: #ef5350;
+}
+.badge.waiting {
+  background: linear-gradient(90deg, #fa69f3, #8b5cf6);
+}
+
+/* ─── ปุ่ม ─────────────────────────────── */
 .btn {
   padding: 0.45rem 0.9rem;
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
   font-size: 0.9rem;
-  transition: all 0.2s;
+  font-weight: 500;
+  transition: 0.2s;
 }
 
-.btn-detail { background: #17a2b8; color: #fff; }
-.btn-detail:hover { background: #138496; }
-.btn-cancel { background: #dc3545; color: #fff; }
-.btn-cancel:hover { background: #b02a37; }
-.btn-primary { background: #007bff; color: white; }
-.btn-secondary { background: #6c757d; color: white; }
+.btn-detail {
+  background: #17a2b8;
+  color: #fff;
+}
+.btn-detail:hover {
+  background: #138496;
+}
 
-/* Popup */
+.btn-cancel {
+  background: #e53935;
+  color: #fff;
+}
+.btn-cancel:hover {
+  background: #c62828;
+}
+
+.btn-primary {
+  background: linear-gradient(90deg, #4a90e2, #5b8def);
+  color: white;
+}
+
+.btn-secondary {
+  background: #6c757d;
+  color: white;
+}
+
+/* ─── Popup ─────────────────────────────── */
 .popup-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,0.5);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -101,84 +163,93 @@
 
 .popup-card {
   background: white;
-  padding: 2rem;
-  border-radius: 10px;
-  width: 900px;
+  padding: 1.8rem;
+  border-radius: 12px;
+  width: 850px;
   max-height: 90vh;
   overflow-y: auto;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25);
+  animation: fadeIn 0.25s ease-out;
 }
 
-.status-change {
-  margin: 1rem 0;
-  text-align: right;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.add-form {
-  margin-top: 1rem;
-  display: flex;
-  gap: 0.5rem;
-  justify-content: flex-end;
-}
-.cost-edit {
-  display: flex;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: 1.2rem;
-  margin-bottom: 1rem;
-  align-items: center;
-}
-
-.cost-edit label {
-  font-weight: 600;
-  margin-right: 0.5rem;
-}
-
-.cost-edit input {
-  width: 120px;
-  padding: 0.3rem;
-  border-radius: 6px;
-  border: 1px solid #ccc;
-  text-align: right;
-  font-weight: 600;
-}
-
-.cost-edit .btn-primary {
-  background: #007bff;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 8px;
-  font-weight: 600;
-}
-
-.cost-edit .btn-primary:hover {
-  background: #0069d9;
-}
-.add-form {
-  margin: 1rem 0;
-  background: #f8f9fa;
-  padding: 0.8rem;
-  border-radius: 8px;
-}
-
-.add-row {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.add-row select,
-.add-row input {
-  padding: 0.4rem 0.6rem;
+/* ─── Info Section ─────────────────────── */
+.info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 1rem;
   font-size: 0.9rem;
-  border-radius: 5px;
-  border: 1px solid #ccc;
-  flex: 1;
+  margin-bottom: 1rem;
 }
 
-.notice-disabled {
-  text-align: center;
-  color: #b30000;
-  font-style: italic;
-  margin-top: 0.5rem;
+/* ─── ตารางใน Popup ───────────────────── */
+.table.small {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
 }
+.table.small th,
+.table.small td {
+  border: 1px solid #eee;
+  padding: 6px;
+  text-align: center;
+  font-size: 13px;
+}
+.table.small th {
+  background: #f3f6fc;
+  color: #1a237e;
+  font-weight: 600;
+}
+
+/* ─── รวมราคา ─────────────────────────── */
+.total-mini {
+  text-align: right;
+  font-weight: 600;
+  background: #f8f9fa;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+/* ─── ปุ่มใน Popup ───────────────────── */
+.popup-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+/* ─── ฟอร์มแนบสลิป ─────────────────── */
+.slip-upload {
+  margin-top: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.slip-upload input[type="file"] {
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  padding: 6px;
+}
+
+.slip-preview {
+  margin-top: 15px;
+  text-align: center;
+}
+.slip-preview img {
+  width: 220px;
+  border-radius: 10px;
+  margin-top: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+  

@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import Swal from "sweetalert2";
 import "../styles/TableForBook.css";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import "../font/Sarabun-ExtraBold-normal.js";
+import "../font/Sarabun-Regular-normal.js";
 
 export default function AdminRepairManager() {
   const [bookings, setBookings] = useState([]);
@@ -49,12 +53,15 @@ export default function AdminRepairManager() {
     switch (id) {
       case 1: return { text: "⏳ รอช่าง", class: "pending" };
       case 2: return { text: "🔧 กำลังซ่อม", class: "progress" };
+      case 5: return { text: "💰 รอชำระเงิน", class: "waiting" };
       case 3: return { text: "✅ เสร็จแล้ว", class: "done" };
       case 4: return { text: "❌ ยกเลิก", class: "cancel" };
       default: return { text: "❔ ไม่ทราบ", class: "unknown" };
     }
   };
 
+
+  // ✅ ฟิลเตอร์ข้อมูล
   useEffect(() => {
     let filteredData = bookings;
 
@@ -182,7 +189,7 @@ export default function AdminRepairManager() {
     openPopup(selectedBooking, currentStatus);
   };
 
-  // ✅ แก้ไขค่า service / freight
+  // ✅ อัปเดตค่าแรง / ค่าส่ง
   const updateCost = async () => {
     if (currentStatus === 3 || currentStatus === 4)
       return Swal.fire("⚠️", "ไม่สามารถแก้ไขในสถานะนี้ได้", "warning");
@@ -192,7 +199,7 @@ export default function AdminRepairManager() {
         method: "PUT",
         body: {
           service: Number(bookingDetail.service),
-          freight: Number(bookingDetail.freight),
+          freight: bookingDetail.transport_required ? Number(bookingDetail.freight) : 0,
         },
       });
       if (res.success) {
@@ -204,14 +211,71 @@ export default function AdminRepairManager() {
     }
   };
 
+  // ✅ คำนวณราคารวม
   const totalParts = repairItems.reduce(
     (sum, i) => sum + Number(i.unit_price) * Number(i.quantity),
     0
   );
-
   const service = Number(bookingDetail?.service || 0);
-  const freight = Number(bookingDetail?.freight || 0);
+  const freight = bookingDetail?.transport_required ? Number(bookingDetail?.freight || 0) : 0;
   const grandTotal = totalParts + service + freight;
+
+  // ✅ พิมพ์ใบเสร็จ PDF (ไม่มีโลโก้)
+  const printPDF = () => {
+    if (!bookingDetail) return;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    doc.setFont("Sarabun-Regular");
+
+    // หัวกระดาษ
+    doc.setFontSize(16);
+    doc.setFont("Sarabun-ExtraBold");
+    doc.text("ใบเสร็จซ่อมรถ / Repair Invoice", 70, 18);
+    doc.line(14, 22, 196, 22);
+
+    // รายละเอียดลูกค้า
+    doc.setFontSize(11);
+    doc.setFont("Sarabun-Regular");
+    const startY = 30;
+    doc.text(`เลขที่งานซ่อม: #${bookingDetail.booking_id}`, 14, startY);
+    doc.text(`วันที่: ${new Date(bookingDetail.date).toLocaleDateString("th-TH")}`, 130, startY);
+    doc.text(`ชื่อเจ้าของรถ: ${bookingDetail.owner_name || "-"}`, 14, startY + 7);
+    doc.text(`รุ่นรถ: ${bookingDetail.model}`, 14, startY + 14);
+    doc.text(`ทะเบียน: ${bookingDetail.license_plate}`, 130, startY + 14);
+    doc.text(`ขนส่ง: ${bookingDetail.transport_required ? "ให้ร้านรับ-ส่งรถ" : "ลูกค้าส่งเอง"}`, 14, startY + 21);
+
+    // ตารางอะไหล่
+    const tableData = repairItems.map((i, idx) => [
+      idx + 1,
+      i.partname,
+      i.quantity,
+      `${Number(i.unit_price).toLocaleString()} ฿`,
+      `${(i.unit_price * i.quantity).toLocaleString()} ฿`,
+    ]);
+
+    doc.autoTable({
+      head: [["#", "ชื่ออะไหล่", "จำนวน", "ราคา/หน่วย", "รวม"]],
+      body: tableData,
+      startY: startY + 30,
+      theme: "grid",
+      headStyles: { fillColor: [41, 128, 185], textColor: 255 },
+      styles: { font: "Sarabun-Regular", fontSize: 10 },
+    });
+
+    let finalY = doc.lastAutoTable.finalY + 8;
+    doc.text(`ค่าอะไหล่: ${totalParts.toLocaleString()} ฿`, 120, finalY);
+    doc.text(`ค่าแรง: ${service.toLocaleString()} ฿`, 120, finalY + 6);
+    if (bookingDetail.transport_required) {
+      doc.text(`ค่าส่งรถ: ${freight.toLocaleString()} ฿`, 120, finalY + 12);
+      finalY += 6;
+    }
+    doc.setFont("Sarabun-ExtraBold");
+    doc.text(`รวมทั้งหมด: ${grandTotal.toLocaleString()} ฿`, 120, finalY + 18);
+    doc.line(14, finalY + 25, 196, finalY + 25);
+    doc.setFont("Sarabun-Regular");
+    doc.text("ลายเซ็นช่างผู้ซ่อม ____________________", 14, finalY + 40);
+    doc.text("ลายเซ็นลูกค้า _________________________", 120, finalY + 40);
+    doc.save(`Invoice_${bookingDetail.booking_id}.pdf`);
+  };
 
   if (loading) return <div className="loading">⏳ กำลังโหลด...</div>;
 
@@ -219,7 +283,29 @@ export default function AdminRepairManager() {
     <div className="page-container">
       <h1 className="page-title">🧰 ระบบจัดการงานซ่อม (Admin)</h1>
 
-      {/* ตาราง + popup */}
+      {/* ✅ Filter Bar */}
+      <div className="filter-bar">
+        <input
+          type="text"
+          placeholder="🔍 ค้นหา (ชื่อ / ทะเบียน / รุ่น)"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="all">ทุกสถานะ</option>
+          <option value="1">⏳ รอช่าง</option>
+          <option value="2">🔧 กำลังซ่อม</option>
+          <option value="5">💰 รอชำระเงิน</option>
+          <option value="3">✅ เสร็จแล้ว</option>
+          <option value="4">❌ ยกเลิก</option>
+        </select>
+
+        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        <button className="btn btn-primary" onClick={fetchBookings}>🔄 รีเฟรช</button>
+      </div>
+
+      {/* ตารางหลัก */}
       <div className="table-container wide">
         <table className="table big-table">
           <thead>
@@ -247,12 +333,7 @@ export default function AdminRepairManager() {
                   <td>{b.description || "-"}</td>
                   <td><span className={`badge ${s.class}`}>{s.text}</span></td>
                   <td>
-                    <button
-                      className="btn btn-detail"
-                      onClick={() => openPopup(b.booking_id, b.status_id)}
-                    >
-                      🧾 รายละเอียด
-                    </button>
+                    <button className="btn btn-detail" onClick={() => openPopup(b.booking_id, b.status_id)}>🧾</button>
                   </td>
                 </tr>
               );
@@ -261,22 +342,20 @@ export default function AdminRepairManager() {
         </table>
       </div>
 
-      {/* ✅ Popup */}
-      {selectedBooking && (
+      {/* ✅ Popup กะทัดรัด */}
+      {selectedBooking && bookingDetail && (
         <div className="popup-overlay">
-          <div className="popup-card fancy-popup">
-            <h4 className="popup-title">🧾 รายละเอียดงานซ่อม #{selectedBooking}</h4>
-            <hr className="divider" />
+          <div className="popup-card compact">
+            <h4 className="popup-title">🧾 งานซ่อม #{selectedBooking}</h4>
 
-            {bookingDetail && (
-              <div className="booking-info">
-                <p><b>🚗 รถ:</b> {bookingDetail.model} ({bookingDetail.license_plate})</p>
-                <p><b>👤 เจ้าของ:</b> {bookingDetail.owner_name || "ไม่ระบุ"}</p>
-                <p><b>📅 วันที่:</b> {new Date(bookingDetail.date).toLocaleDateString("th-TH")}</p>
-                <p><b>🕓 เวลา:</b> {bookingDetail.time}</p>
-                <p><b>💬 รายละเอียด:</b> {bookingDetail.description || "-"}</p>
-              </div>
-            )}
+            <div className="info-grid">
+              <div><b>🚗 รถ:</b> {bookingDetail.model} ({bookingDetail.license_plate})</div>
+              <div><b>👤 เจ้าของ:</b> {bookingDetail.owner_name || "-"}</div>
+              <div><b>📅 วันที่:</b> {new Date(bookingDetail.date).toLocaleDateString("th-TH")}</div>
+              <div><b>🕓 เวลา:</b> {bookingDetail.time}</div>
+              <div><b>💬 รายละเอียด:</b> {bookingDetail.description || "-"}</div>
+              <div><b>🚚:</b> {bookingDetail.transport_required ? "รับ-ส่ง" : "ลูกค้าส่งเอง"}</div>
+            </div>
 
             <div className="status-change">
               <label>สถานะ: </label>
@@ -285,18 +364,14 @@ export default function AdminRepairManager() {
                 <option value={2}>🔧 กำลังซ่อม</option>
                 <option value={3}>✅ เสร็จแล้ว</option>
                 <option value={4}>❌ ยกเลิก</option>
+                <option value={5}>💰 รอชำระเงิน</option>
               </select>
             </div>
 
-            {/* ✅ ตารางอะไหล่ */}
             <table className="table small">
               <thead>
                 <tr>
-                  <th>ชื่ออุปกรณ์</th>
-                  <th>จำนวน</th>
-                  <th>ราคา/หน่วย</th>
-                  <th>รวม</th>
-                  <th>ลบ</th>
+                  <th>อุปกรณ์</th><th>จำนวน</th><th>ราคา/หน่วย</th><th>รวม</th><th></th>
                 </tr>
               </thead>
               <tbody>
@@ -306,74 +381,77 @@ export default function AdminRepairManager() {
                     <td>{i.quantity}</td>
                     <td>{Number(i.unit_price).toLocaleString()} ฿</td>
                     <td>{(i.unit_price * i.quantity).toLocaleString()} ฿</td>
-                    <td>
-                      <button className="btn btn-cancel" onClick={() => deleteItem(i.part_id)}>
-                        ❌
-                      </button>
-                    </td>
+                    <td><button className="btn btn-cancel" onClick={() => deleteItem(i.part_id)}>🗑</button></td>
                   </tr>
                 ))}
               </tbody>
             </table>
 
-            {/* ✅ ฟอร์มเพิ่มอุปกรณ์ใหม่ */}
-            {currentStatus !== 3 && currentStatus !== 4 ? (
+            {currentStatus !== 3 && currentStatus !== 4 && (
               <form onSubmit={addRepairItem} className="add-form">
-                <h5>➕ เพิ่มอุปกรณ์ซ่อม</h5>
-                <div className="add-row">
-                  <select name="part_id" required>
-                    <option value="">เลือกอุปกรณ์</option>
-                    {parts.map((p) => (
-                      <option key={p.part_id} value={p.part_id}>
-                        {p.name} ({p.marque}) — {p.unit_price}฿
-                      </option>
-                    ))}
-                  </select>
-                  <input type="number" name="quantity" min="1" placeholder="จำนวน" required />
-                  <button className="btn btn-primary">➕ เพิ่ม</button>
-                </div>
+                <select name="part_id" required>
+                  <option value="">เลือกอุปกรณ์</option>
+                  {parts.map((p) => (
+                    <option key={p.part_id} value={p.part_id}>
+                      {p.name} ({p.marque}) — {p.unit_price}฿
+                    </option>
+                  ))}
+                </select>
+                <input type="number" name="quantity" min="1" placeholder="จำนวน" required />
+                <button className="btn btn-primary">➕ เพิ่ม</button>
               </form>
-            ) : (
-              <p className="notice-disabled">⚠️ ไม่สามารถเพิ่มอุปกรณ์ในสถานะนี้ได้</p>
             )}
 
-            {/* ✅ ช่องแก้ไขค่าใช้จ่าย */}
-            <div className="cost-edit">
-              <div>
-                <label>🧰 ค่าแรง (Service): </label>
-                <input
-                  type="number"
-                  value={bookingDetail?.service || 0}
-                  onChange={(e) =>
-                    setBookingDetail({ ...bookingDetail, service: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <label>🚗 ค่าส่งรถ (Freight): </label>
-                <input
-                  type="number"
-                  value={bookingDetail?.freight || 0}
-                  onChange={(e) =>
-                    setBookingDetail({ ...bookingDetail, freight: e.target.value })
-                  }
-                />
-              </div>
-              <button className="btn btn-primary" onClick={updateCost}>
-                💾 บันทึกค่าใช้จ่าย
-              </button>
+            <div className="cost-summary">
+              <label>🧰 ค่าแรง:</label>
+              <input type="number" value={bookingDetail.service || 0}
+                onChange={(e) => setBookingDetail({ ...bookingDetail, service: e.target.value })} />
+              {bookingDetail.transport_required && (
+                <>
+                  <label>🚗 ค่าส่ง:</label>
+                  <input type="number" value={bookingDetail.freight || 0}
+                    onChange={(e) => setBookingDetail({ ...bookingDetail, freight: e.target.value })} />
+                </>
+              )}
+              <button className="btn btn-primary" onClick={updateCost}>💾</button>
             </div>
 
-            {/* ✅ รวมราคา */}
-            <div className="total-section">
-              <p>🔩 ค่าอะไหล่: {totalParts.toLocaleString()} ฿</p>
-              <p>🧰 ค่าแรง: {service.toLocaleString()} ฿</p>
-              <p>🚗 ค่าส่งรถ: {freight.toLocaleString()} ฿</p>
-              <hr />
-              <p><b>💰 รวมทั้งหมด: {grandTotal.toLocaleString()} ฿</b></p>
+            <div className="total-mini">
+              <p>อะไหล่: {totalParts.toLocaleString()} ฿</p>
+              <p>แรง: {service.toLocaleString()} ฿</p>
+              {bookingDetail.transport_required && <p>ส่งรถ: {freight.toLocaleString()} ฿</p>}
+              <b>💰 รวม: {grandTotal.toLocaleString()} ฿</b>
             </div>
 
-            <button className="btn btn-secondary" onClick={closePopup}>ปิด</button>
+            {/* ✅ ส่วนแสดงสลิปที่แนบ */}
+            {bookingDetail.slipfilename && (
+              <div className="slip-preview">
+                <h4>📄 สลิปการชำระเงินจากลูกค้า</h4>
+                <img
+                  src={`http://localhost:3000/uploads/${bookingDetail.slipfilename}`}
+                  alt="Slip"
+                  className="slip-img"
+                />
+                <p style={{ fontSize: "0.9rem", color: "#555", marginTop: "0.4rem" }}>
+                  🕓 วันที่แนบ: {new Date(bookingDetail.updated_at || bookingDetail.date).toLocaleString("th-TH")}
+                </p>
+                <a
+                  href={`http://localhost:3000/uploads/${bookingDetail.slipfilename}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-success"
+                  style={{ marginTop: "0.6rem" }}
+                >
+                  🔍 เปิดดูขนาดเต็ม
+                </a>
+              </div>
+            )}
+
+            <div className="popup-actions">
+              <button className="btn btn-print" onClick={printPDF}>🖨️ พิมพ์ใบเสร็จ</button>
+              <button className="btn btn-secondary" onClick={closePopup}>ปิด</button>
+            </div>
+
           </div>
         </div>
       )}
