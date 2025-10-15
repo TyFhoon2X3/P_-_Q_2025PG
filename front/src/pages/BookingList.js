@@ -270,7 +270,6 @@ export default function UserRepairStatus() {
           <option value="2">🔧 กำลังซ่อม</option>
           <option value="3">✅ เสร็จแล้ว</option>
           <option value="4">❌ ยกเลิก</option>
-          <option value="5">💰 รอชำระเงิน</option>
         </select>
         <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
@@ -340,7 +339,7 @@ export default function UserRepairStatus() {
               </b>
             </div>
 
-            {bookingDetail.status_id === 5 && (
+            {bookingDetail.status_id === 3 && (
               <>
                 <div className="qr-section">
                   <button className="btn btn-success" onClick={showQRCode}>📱 แสดง QR พร้อมยอด</button>
@@ -352,7 +351,6 @@ export default function UserRepairStatus() {
                 </form>
               </>
             )}
-
 
             {bookingDetail.slipfilename && (
               <div className="slip-preview">
@@ -366,14 +364,9 @@ export default function UserRepairStatus() {
             )}
 
             <div className="popup-actions">
-              {bookingDetail.status_id === 3 && (
-                <button className="btn btn-print" onClick={printPDF}>
-                  🖨️ พิมพ์ใบซ่อม
-                </button>
-              )}
+              <button className="btn btn-print" onClick={printPDF}>🖨️ พิมพ์ใบซ่อม</button>
               <button className="btn btn-secondary" onClick={closePopup}>ปิด</button>
             </div>
-
           </div>
         </div>
       )}

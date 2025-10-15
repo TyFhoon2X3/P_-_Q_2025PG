@@ -1,6 +1,6 @@
 import "../styles/navbar.css";
 import "../styles/common.css";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
@@ -8,16 +8,19 @@ import { Bell } from "lucide-react"; // 🔔 ไอคอนแจ้งเต�
 
 export default function Navbar() {
   const nav = useNavigate();
+  const location = useLocation(); // ✅ ใช้ตรวจจับการเปลี่ยนหน้า
   const [role, setRole] = useState(null);
   const [lowStock, setLowStock] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
+  // ✅ โหลด role ทุกครั้งที่มีการเปลี่ยนหน้า
   useEffect(() => {
-    const updateRole = () => setRole(localStorage.getItem("role"));
+    const updateRole = () => {
+      const storedRole = localStorage.getItem("role");
+      setRole(storedRole);
+    };
     updateRole();
-    window.addEventListener("storage", updateRole);
-    return () => window.removeEventListener("storage", updateRole);
-  }, []);
+  }, [location]); // 👈 ทุกครั้งที่ route เปลี่ยน
 
   // ✅ ดึงข้อมูลอะไหล่ใกล้หมด (เฉพาะ Admin)
   useEffect(() => {
@@ -46,6 +49,7 @@ export default function Navbar() {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
+    setRole(null);
     nav("/login");
   };
 
@@ -117,7 +121,9 @@ export default function Navbar() {
                 <div className="notification-dropdown">
                   <div className="dropdown-header">⚠️ อะไหล่ใกล้หมด</div>
                   {lowStock.length === 0 ? (
-                    <div className="dropdown-empty">✅ ไม่มีอะไหล่ใกล้หมด</div>
+                    <div className="dropdown-empty">
+                      ✅ ไม่มีอะไหล่ใกล้หมด
+                    </div>
                   ) : (
                     <ul>
                       {lowStock.map((p) => (
@@ -133,7 +139,10 @@ export default function Navbar() {
                     </ul>
                   )}
                   <div className="dropdown-footer">
-                    <Link to="/admin/parts" onClick={() => setDropdownOpen(false)}>
+                    <Link
+                      to="/admin/parts"
+                      onClick={() => setDropdownOpen(false)}
+                    >
                       ดูทั้งหมด →
                     </Link>
                   </div>
