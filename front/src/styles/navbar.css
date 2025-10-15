@@ -68,12 +68,14 @@
   border-radius: 2px;
 }
 
-/* Actions (login/logout buttons) */
+/* Actions */
 .nav-actions {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 12px;
 }
 
+/* ปุ่ม */
 .btn-outline {
   border: 1.5px solid var(--nav-active);
   color: var(--nav-active);
@@ -87,6 +89,99 @@
 .btn-outline:hover {
   background: var(--nav-active);
   color: #fff;
+}
+
+/* 🔔 Notification */
+.notification-container {
+  position: relative;
+}
+
+.notification-btn {
+  position: relative;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--nav-text);
+}
+
+.badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444;
+  color: white;
+  font-size: 0.7rem;
+  font-weight: bold;
+  padding: 0 5px;
+  border-radius: 50%;
+}
+
+/* Dropdown */
+.notification-dropdown {
+  position: absolute;
+  right: 0;
+  margin-top: 0.7rem;
+  background: #1e293b;
+  color: #f8fafc;
+  width: 260px;
+  border-radius: 10px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  z-index: 100;
+  animation: fadeIn 0.2s ease;
+}
+
+.dropdown-header {
+  font-weight: 600;
+  background: #334155;
+  padding: 0.5rem 1rem;
+}
+
+.dropdown-empty {
+  text-align: center;
+  padding: 1rem;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.dropdown-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  font-size: 0.9rem;
+  border-bottom: 1px solid #334155;
+}
+
+.dropdown-item:hover {
+  background: #475569;
+}
+
+.dropdown-item .qty {
+  color: #f87171;
+  font-weight: 600;
+}
+
+.dropdown-footer {
+  text-align: center;
+  padding: 0.5rem;
+  border-top: 1px solid #334155;
+}
+
+.dropdown-footer a {
+  color: var(--nav-hover);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.dropdown-footer a:hover {
+  text-decoration: underline;
+}
+
+/* Animation */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Responsive */
@@ -105,3 +200,4 @@
     justify-content: flex-end;
   }
 }
+  

@@ -1,157 +1,320 @@
-const pool = require("../db/db");
+import { useEffect, useState } from "react";
+import { api } from "../api";
+import Swal from "sweetalert2";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import "../font/Sarabun-Regular-normal.js";
+import "../font/Sarabun-ExtraBold-normal.js";
 
-const BookingController = {
-  // ✅ ดึงรายการของผู้ใช้
-  async getMine(req, res) {
+export default function AdminRepairManager() {
+  const [bookings, setBookings] = useState([]);
+  const [filtered, setFiltered] = useState([]);
+  const [parts, setParts] = useState([]);
+  const [repairItems, setRepairItems] = useState([]);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [bookingDetail, setBookingDetail] = useState(null);
+  const [currentStatus, setCurrentStatus] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  // ✅ โหลดข้อมูลทั้งหมด
+  useEffect(() => {
+    fetchBookings();
+    fetchParts();
+  }, []);
+
+  const fetchBookings = async () => {
     try {
-      const userId = req.user?.user_id;
-      if (!userId)
-        return res.status(401).json({ success: false, message: "Unauthorized" });
+      const data = await api("/api/bookings");
+      if (data.success) {
+        console.log("✅ Bookings fetched:", data.bookings);
+        setBookings(data.bookings);
+        setFiltered(data.bookings);
+      }
+    } catch (err) {
+      console.error("❌ Error fetching bookings:", err);
+      Swal.fire("❌", "โหลดข้อมูลการจองไม่สำเร็จ", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      const result = await pool.query(
-        `SELECT 
-          b.booking_id, b.date, b.time, b.status_id, b.description, b.transport_required,
-          COALESCE(b.cost,0)+COALESCE(b.service,0)+COALESCE(b.freight,0) AS total_price,
-          b.slipfilename,
-          v.license_plate, v.model,
-          u.name AS owner_name
-         FROM bookings b
-         JOIN vehicles v ON v.vehicle_id = b.vehicle_id
-         JOIN users u ON v.user_id = u.user_id
-         WHERE v.user_id = $1
-         ORDER BY b.date DESC, b.time DESC`,
-        [userId]
+  const fetchParts = async () => {
+    try {
+      const data = await api("/api/parts");
+      if (data.success) setParts(data.parts || []);
+    } catch {
+      Swal.fire("❌", "โหลดข้อมูลอะไหล่ไม่สำเร็จ", "error");
+    }
+  };
+
+  // ✅ Map สถานะ
+  const getStatus = (id) => {
+    switch (id) {
+      case 1:
+        return { text: "รอช่าง", class: "pending" };
+      case 2:
+        return { text: "กำลังซ่อม", class: "progress" };
+      case 3:
+        return { text: "เสร็จแล้ว", class: "done" };
+      case 4:
+        return { text: "ยกเลิกการจอง", class: "cancel" };
+      case 5:
+        return { text: "รอชำระเงิน", class: "waiting" };
+      default:
+        return { text: "-", class: "unknown" };
+    }
+  };
+
+  // ✅ ฟิลเตอร์ข้อมูล
+  useEffect(() => {
+    let filteredData = bookings;
+
+    if (searchTerm) {
+      filteredData = filteredData.filter(
+        (b) =>
+          b.license_plate?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          b.model?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          b.owner_name?.toLowerCase().includes(searchTerm.toLowerCase())
       );
-
-      res.json({ success: true, bookings: result.rows });
-    } catch (err) {
-      console.error("Get my bookings error:", err.message);
-      res.status(500).json({ success: false, message: "Server error" });
     }
-  },
 
-  // ✅ ดึงทั้งหมด (Admin)
-  async getAll(req, res) {
-    try {
-      const result = await pool.query(`
-        SELECT 
-          b.booking_id, b.vehicle_id, b.date, b.time, b.status_id,
-          b.description, b.transport_required, b.slipfilename,
-          COALESCE(b.cost,0) AS cost, COALESCE(b.service,0) AS service, COALESCE(b.freight,0) AS freight,
-          (COALESCE(b.cost,0)+COALESCE(b.service,0)+COALESCE(b.freight,0)) AS total_price,
-          v.license_plate, v.model,
-          u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone
-        FROM bookings b
-        JOIN vehicles v ON b.vehicle_id = v.vehicle_id
-        JOIN users u ON v.user_id = u.user_id
-        ORDER BY b.date DESC, b.time DESC;
-      `);
-
-      res.json({ success: true, bookings: result.rows });
-    } catch (err) {
-      console.error("Error fetching bookings:", err.message);
-      res.status(500).json({ success: false, message: "Server error" });
-    }
-  },
-
-  // ✅ ดึงรายละเอียดราย ID
-  async getById(req, res) {
-    const { id } = req.params;
-    try {
-      const result = await pool.query(
-        `SELECT 
-          b.*, v.license_plate, v.model, u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone
-         FROM bookings b
-         JOIN vehicles v ON b.vehicle_id = v.vehicle_id
-         JOIN users u ON v.user_id = u.user_id
-         WHERE b.booking_id = $1`,
-        [id]
+    if (statusFilter !== "all") {
+      filteredData = filteredData.filter(
+        (b) => String(b.status_id) === String(statusFilter)
       );
-      if (!result.rowCount)
-        return res.status(404).json({ success: false, message: "Booking not found" });
-      res.json({ success: true, booking: result.rows[0] });
-    } catch (err) {
-      console.error("Get booking by ID error:", err.message);
-      res.status(500).json({ success: false, message: "Server error" });
     }
-  },
 
-  // ✅ สร้างงานซ่อมใหม่
-  async create(req, res) {
+    if (startDate && endDate) {
+      filteredData = filteredData.filter((b) => {
+        const d = new Date(b.date);
+        return d >= new Date(startDate) && d <= new Date(endDate);
+      });
+    }
+
+    setFiltered(filteredData);
+  }, [searchTerm, statusFilter, startDate, endDate, bookings]);
+
+  // ✅ เปิด Popup
+  const openPopup = async (booking_id, status_id) => {
+    setSelectedBooking(booking_id);
+    setCurrentStatus(status_id);
     try {
-      const { vehicle_id, date, time, description, transport_required } = req.body;
-      const insert = await pool.query(
-        `INSERT INTO bookings 
-          (vehicle_id, date, time, status_id, description, transport_required)
-         VALUES ($1, $2, $3, 1, $4, $5) 
-         RETURNING *`,
-        [vehicle_id, date, time, description, transport_required]
-      );
-      res.status(201).json({ success: true, booking: insert.rows[0] });
-    } catch (err) {
-      console.error("Create booking error:", err.message);
-      res.status(500).json({ success: false, message: "Server error" });
+      const [repairRes, detailRes] = await Promise.all([
+        api(`/api/repair-items/${booking_id}`),
+        api(`/api/bookings/${booking_id}`)
+      ]);
+      if (repairRes.success) setRepairItems(repairRes.items || []);
+      if (detailRes.success) setBookingDetail(detailRes.booking);
+    } catch {
+      Swal.fire("❌", "โหลดรายละเอียดไม่สำเร็จ", "error");
     }
-  },
+  };
 
-  // ✅ อัปเดตสถานะ
-  async update(req, res) {
-    const { id } = req.params;
-    const { status_id, description, service, freight } = req.body;
+  const closePopup = () => {
+    setSelectedBooking(null);
+    setRepairItems([]);
+    setBookingDetail(null);
+  };
+
+  // ✅ เปลี่ยนสถานะ
+  const updateStatus = async (e) => {
+    const newStatus = Number(e.target.value);
     try {
-      const current = await pool.query(`SELECT * FROM bookings WHERE booking_id=$1`, [id]);
-      if (!current.rowCount)
-        return res.status(404).json({ success: false, message: "Booking not found" });
-
-      const old = current.rows[0];
-      const newStatus = status_id ?? old.status_id;
-      const newDesc = description ?? old.description;
-      const newService = service ?? old.service ?? 0;
-      const newFreight = freight ?? old.freight ?? 0;
-
-      const result = await pool.query(
-        `UPDATE bookings 
-         SET status_id=$1, description=$2, service=$3, freight=$4 
-         WHERE booking_id=$5 RETURNING *`,
-        [newStatus, newDesc, newService, newFreight, id]
-      );
-      res.json({ success: true, booking: result.rows[0] });
-    } catch (err) {
-      console.error("Update booking error:", err.message);
-      res.status(500).json({ success: false, message: "Server error" });
+      const res = await api(`/api/bookings/${selectedBooking}`, {
+        method: "PUT",
+        body: { status_id: newStatus },
+      });
+      if (res.success) {
+        setCurrentStatus(newStatus);
+        Swal.fire("✅", "อัปเดตสถานะสำเร็จ", "success");
+        fetchBookings();
+      }
+    } catch {
+      Swal.fire("❌", "ไม่สามารถเปลี่ยนสถานะได้", "error");
     }
-  },
+  };
 
-  // ✅ อัปโหลดสลิป (เปลี่ยนสถานะเป็น “เสร็จแล้ว”)
-  async uploadSlip(req, res) {
+  // ✅ เพิ่มอะไหล่
+  const addRepairItem = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const part_id = form.part_id.value;
+    const quantity = Number(form.quantity.value);
+    const part = parts.find((p) => p.part_id === part_id);
+
+    if (!part) return Swal.fire("❌", "ไม่พบอะไหล่ที่เลือก", "error");
+
     try {
-      const { id } = req.params;
-      const filename = req.file?.filename;
-      if (!filename) return res.status(400).json({ success: false, message: "No file uploaded" });
-
-      await pool.query(
-        `UPDATE bookings SET slipfilename=$1, status_id=3 WHERE booking_id=$2`,
-        [filename, id]
-      );
-
-      res.json({ success: true, message: "อัปโหลดสลิปสำเร็จ", filename });
-    } catch (err) {
-      console.error("Upload slip error:", err.message);
-      res.status(500).json({ success: false, message: "Server error" });
+      const res = await api("/api/repair-items", {
+        method: "POST",
+        body: {
+          booking_id: selectedBooking,
+          part_id,
+          quantity,
+          unit_price: Number(part.unit_price),
+        },
+      });
+      if (res.success) {
+        Swal.fire("✅", "เพิ่มอะไหล่สำเร็จ", "success");
+        form.reset();
+        openPopup(selectedBooking, currentStatus);
+      }
+    } catch {
+      Swal.fire("❌", "เกิดข้อผิดพลาด", "error");
     }
-  },
+  };
 
-  // ✅ ลบงานซ่อม
-  async delete(req, res) {
-    const { id } = req.params;
-    try {
-      await pool.query(`DELETE FROM bookings WHERE booking_id=$1`, [id]);
-      res.json({ success: true, message: "Booking deleted" });
-    } catch (err) {
-      console.error("Delete booking error:", err.message);
-      res.status(500).json({ success: false, message: "Server error" });
-    }
-  },
-};
+  // ✅ คำนวณราคา
+  const totalParts = repairItems.reduce(
+    (sum, i) => sum + Number(i.unit_price) * Number(i.quantity),
+    0
+  );
+  const service = Number(bookingDetail?.service || 0);
+  const freight = bookingDetail?.transport_required ? Number(bookingDetail?.freight || 0) : 0;
+  const grandTotal = totalParts + service + freight;
 
-module.exports = BookingController;
+  // ✅ พิมพ์ใบเสร็จ PDF
+  const printPDF = () => {
+    if (!bookingDetail) return;
+    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+    doc.setFont("Sarabun-Regular");
+    doc.setFontSize(16);
+    doc.text("ใบเสร็จซ่อมรถ (Repair Invoice)", 65, 18);
+    doc.line(14, 22, 196, 22);
+    doc.setFontSize(11);
+    doc.text(`รหัสงาน: #${bookingDetail.booking_id}`, 14, 30);
+    doc.text(`วันที่: ${new Date(bookingDetail.date).toLocaleDateString("th-TH")}`, 130, 30);
+    doc.text(`รถ: ${bookingDetail.model} (${bookingDetail.license_plate})`, 14, 38);
+    doc.text(`รายละเอียด: ${bookingDetail.description || "-"}`, 14, 46);
+
+    const tableData = repairItems.map((i, idx) => [
+      idx + 1,
+      i.partname,
+      i.quantity,
+      `${Number(i.unit_price).toLocaleString()} ฿`,
+      `${(i.unit_price * i.quantity).toLocaleString()} ฿`,
+    ]);
+
+    doc.autoTable({
+      head: [["#", "ชื่ออะไหล่", "จำนวน", "ราคา/หน่วย", "รวม"]],
+      body: tableData,
+      startY: 56,
+      theme: "grid",
+      styles: { font: "Sarabun-Regular", fontSize: 10 },
+      headStyles: { fillColor: [50, 100, 200], textColor: 255 },
+    });
+
+    let finalY = doc.lastAutoTable.finalY + 10;
+    doc.text(`💰 รวมทั้งหมด: ${grandTotal.toLocaleString()} บาท`, 150, finalY);
+    doc.text("ลงชื่อลูกค้า ____________________", 14, finalY + 20);
+    doc.save(`Repair_${bookingDetail.booking_id}.pdf`);
+  };
+
+  if (loading) return <div className="loading">⏳ กำลังโหลด...</div>;
+
+  return (
+    <div className="page-container">
+      <h1 className="page-title">🧰 ระบบจัดการงานซ่อม (Admin)</h1>
+
+      {/* ✅ Filter Bar */}
+      <div className="filter-bar">
+        <input
+          type="text"
+          placeholder="🔍 ค้นหา (ชื่อ / ทะเบียน / รุ่น)"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="all">ทุกสถานะ</option>
+          <option value="1">⏳ รอช่าง</option>
+          <option value="2">🔧 กำลังซ่อม</option>
+          <option value="5">💰 รอชำระเงิน</option>
+          <option value="3">✅ เสร็จแล้ว</option>
+          <option value="4">❌ ยกเลิก</option>
+        </select>
+        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        <button className="btn btn-primary" onClick={fetchBookings}>🔄 รีเฟรช</button>
+      </div>
+
+      {/* ✅ ตาราง */}
+      <div className="table-container wide">
+        <table className="table big-table">
+          <thead>
+            <tr>
+              <th>รหัส</th>
+              <th>วันที่</th>
+              <th>เวลา</th>
+              <th>เจ้าของรถ</th>
+              <th>รถ</th>
+              <th>รายละเอียด</th>
+              <th>สถานะ</th>
+              <th>จัดการ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((b) => {
+              const s = getStatus(b.status_id);
+              return (
+                <tr key={b.booking_id}>
+                  <td>{b.booking_id}</td>
+                  <td>{new Date(b.date).toLocaleDateString("th-TH")}</td>
+                  <td>{b.time}</td>
+                  <td>{b.owner_name || "-"}</td>
+                  <td>{b.license_plate} ({b.model})</td>
+                  <td>{b.description || "-"}</td>
+                  <td>
+                    <span className={`badge ${s.class}`}>
+                      {b.status_name || s.text || "-"}
+                    </span>
+                  </td>
+                  <td>
+                    <button className="btn btn-detail" onClick={() => openPopup(b.booking_id, b.status_id)}>🧾</button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ✅ Popup */}
+      {selectedBooking && bookingDetail && (
+        <div className="popup-overlay">
+          <div className="popup-card compact">
+            <h4 className="popup-title">🧾 งานซ่อม #{selectedBooking}</h4>
+
+            <div className="info-grid">
+              <div><b>รถ:</b> {bookingDetail.model} ({bookingDetail.license_plate})</div>
+              <div><b>เจ้าของ:</b> {bookingDetail.owner_name || "-"}</div>
+              <div><b>วันที่:</b> {new Date(bookingDetail.date).toLocaleDateString("th-TH")}</div>
+              <div><b>เวลา:</b> {bookingDetail.time}</div>
+              <div><b>รายละเอียด:</b> {bookingDetail.description || "-"}</div>
+              <div><b>สถานะ:</b> {bookingDetail.status_name || getStatus(bookingDetail.status_id).text || "-"}</div>
+            </div>
+
+            <div className="status-change">
+              <label>เปลี่ยนสถานะ:</label>
+              <select value={currentStatus} onChange={updateStatus}>
+                <option value={1}>⏳ รอช่าง</option>
+                <option value={2}>🔧 กำลังซ่อม</option>
+                <option value={5}>💰 รอชำระเงิน</option>
+                <option value={3}>✅ เสร็จแล้ว</option>
+                <option value={4}>❌ ยกเลิก</option>
+              </select>
+            </div>
+
+            <div className="popup-actions">
+              <button className="btn btn-print" onClick={printPDF}>🖨️ พิมพ์ใบเสร็จ</button>
+              <button className="btn btn-secondary" onClick={closePopup}>ปิด</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

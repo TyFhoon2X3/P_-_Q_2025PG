@@ -4,6 +4,7 @@ import "../styles/modal.css";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import Swal from "sweetalert2";
+
 export default function AdminCustomers() {
   const [customers, setCustomers] = useState([]);
   const [keyword, setKeyword] = useState("");
@@ -23,13 +24,19 @@ export default function AdminCustomers() {
     address: "",
   });
 
+  // ban modal state
+  const [banModal, setBanModal] = useState(false);
+  const [banTarget, setBanTarget] = useState(null);
+  const [banReason, setBanReason] = useState("");
+
+  // ดึงข้อมูลลูกค้า
   const fetchCustomers = async () => {
     setLoading(true);
     try {
       const data = await api("/api/customers");
       setCustomers(data.customers || []);
     } catch (err) {
-      alert("โหลดข้อมูลลูกค้าล้มเหลว: " + err.message);
+      Swal.fire("❌", "โหลดข้อมูลลูกค้าไม่สำเร็จ", "error");
     } finally {
       setLoading(false);
     }
@@ -39,11 +46,12 @@ export default function AdminCustomers() {
     fetchCustomers();
   }, []);
 
+  // ✅ ฟิลเตอร์ค้นหา
   const filtered = useMemo(() => {
     const q = keyword.trim().toLowerCase();
     if (!q) return customers;
     return customers.filter((c) =>
-      [c.name, c.email, c.phone, c.address]
+      [c.name, c.email, c.phone, c.address, c.reason]
         .filter(Boolean)
         .some((f) => String(f).toLowerCase().includes(q))
     );
@@ -85,78 +93,104 @@ export default function AdminCustomers() {
           method: "POST",
           body: {
             ...form,
-            password: "Temp@12345", // temporary
+            password: "Temp@12345",
             roleid: "r2",
           },
         });
       }
       setOpen(false);
-      await fetchCustomers();
+      fetchCustomers();
     } catch (err) {
-      alert("บันทึกล้มเหลว: " + err.message);
+      Swal.fire("❌", "บันทึกล้มเหลว: " + err.message, "error");
     }
   };
 
-
-const onDelete = async (row) => {
-  const result = await Swal.fire({
-    title: `ลบลูกค้า "${row.name}" ?`,
-    text: "การลบนี้ไม่สามารถย้อนกลับได้",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#d33",
-    cancelButtonColor: "#3085d6",
-    confirmButtonText: "ใช่, ลบเลย",
-    cancelButtonText: "ยกเลิก",
-  });
-
-  if (!result.isConfirmed) return;
-
-  try {
-    await api(`/api/customers/${row.user_id}`, { method: "DELETE" });
-    await fetchCustomers();
-
-    Swal.fire({
-      title: "สำเร็จ!",
-      text: "ลบลูกค้าเรียบร้อยแล้ว",
-      icon: "success",
-      timer: 2000,
-      showConfirmButton: false,
+  // ✅ ลบลูกค้า
+  const onDelete = async (row) => {
+    const result = await Swal.fire({
+      title: `ลบลูกค้า "${row.name}" ?`,
+      text: "การลบนี้ไม่สามารถย้อนกลับได้",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "ใช่, ลบเลย",
+      cancelButtonText: "ยกเลิก",
     });
-  } catch (err) {
-    Swal.fire({
-      title: "ลบไม่สำเร็จ",
-      text: err.message,
-      icon: "error",
-    });
-  }
-};
 
+    if (!result.isConfirmed) return;
+
+    try {
+      await api(`/api/customers/${row.user_id}`, { method: "DELETE" });
+      fetchCustomers();
+      Swal.fire("✅", "ลบลูกค้าเรียบร้อยแล้ว", "success");
+    } catch (err) {
+      Swal.fire("❌", "ลบไม่สำเร็จ: " + err.message, "error");
+    }
+  };
+
+  // ✅ เปิด modal แบนลูกค้า
+  const openBan = (row) => {
+    setBanTarget(row);
+    setBanReason("");
+    setBanModal(true);
+  };
+
+  // ✅ แบนลูกค้า
+  const confirmBan = async () => {
+    if (!banReason.trim()) {
+      Swal.fire("⚠️", "กรุณากรอกเหตุผลการแบน", "warning");
+      return;
+    }
+
+    try {
+      await api(`/api/customers/${banTarget.user_id}/ban`, {
+        method: "PUT",
+        body: { reason: banReason },
+      });
+      Swal.fire("✅", `แบนลูกค้า ${banTarget.name} สำเร็จ`, "success");
+      setBanModal(false);
+      fetchCustomers();
+    } catch (err) {
+      Swal.fire("❌", "เกิดข้อผิดพลาดในการแบน", "error");
+    }
+  };
+
+  // ✅ ปลดแบน
+  const unban = async (row) => {
+    const res = await Swal.fire({
+      title: `ยืนยันปลดแบน ${row.name}?`,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "ปลดแบน",
+      cancelButtonText: "ยกเลิก",
+    });
+    if (!res.isConfirmed) return;
+
+    try {
+      await api(`/api/customers/${row.user_id}/ban`, {
+        method: "PUT",
+        body: { reason: null },
+      });
+      Swal.fire("✅", "ปลดแบนเรียบร้อย", "success");
+      fetchCustomers();
+    } catch {
+      Swal.fire("❌", "ปลดแบนไม่สำเร็จ", "error");
+    }
+  };
 
   return (
-    <div
-      className="page-container"
-      style={{ maxWidth: 1400, margin: "24px auto", padding: "0 16px" }}
-    >
+    <div className="page-container" style={{ maxWidth: 1400, margin: "24px auto", padding: "0 16px" }}>
       <h1 className="page-title" style={{ marginBottom: 12 }}>
         👤 จัดการลูกค้า
       </h1>
 
       <div className="card-wide">
-
         {/* Search + Action */}
-        <div
-          style={{
-            display: "flex",
-            gap: 12,
-            alignItems: "center",
-            marginBottom: 12,
-            flexWrap: "wrap",
-          }}
-        >
+        <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
           <input
             className="input"
-            placeholder="ค้นหา ชื่อ / อีเมล / เบอร์โทร / ที่อยู่"
+            placeholder="ค้นหา ชื่อ / อีเมล / เบอร์โทร / ที่อยู่ / เหตุผลแบน"
             value={keyword}
             onChange={(e) => {
               setKeyword(e.target.value);
@@ -164,20 +198,10 @@ const onDelete = async (row) => {
             }}
             style={{ maxWidth: 420 }}
           />
-          <button
-            className="btn-outline"
-            onClick={fetchCustomers}
-            disabled={loading}
-          >
+          <button className="btn-outline" onClick={fetchCustomers} disabled={loading}>
             {loading ? "กำลังโหลด..." : "รีเฟรช"}
           </button>
-          <button
-            className="btn-primary"
-            style={{ width: "auto" }}
-            onClick={openCreate}
-          >
-            + เพิ่มลูกค้า
-          </button>
+          <button className="btn-primary" onClick={openCreate}>+ เพิ่มลูกค้า</button>
         </div>
 
         {/* Table */}
@@ -190,13 +214,16 @@ const onDelete = async (row) => {
                 <th>อีเมล</th>
                 <th>เบอร์โทร</th>
                 <th>ที่อยู่</th>
-                <th style={{ width: 160 }}>การจัดการ</th>
+                <th>สถานะ</th>
+                <th>วันที่แบน</th>
+                <th>เหตุผลแบน</th>
+                <th style={{ width: 200 }}>การจัดการ</th>
               </tr>
             </thead>
             <tbody>
               {paginated.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ padding: 16, color: "var(--muted)" }}>
+                  <td colSpan="9" style={{ padding: 16, color: "var(--muted)" }}>
                     ไม่พบข้อมูล
                   </td>
                 </tr>
@@ -209,19 +236,38 @@ const onDelete = async (row) => {
                     <td>{c.phone || "-"}</td>
                     <td>{c.address || "-"}</td>
                     <td>
-                      <button
-                        className="btn-outline"
-                        onClick={() => openEdit(c)}
-                        style={{ marginRight: 8 }}
-                      >
+                      {c.reason ? (
+                        <span style={{ color: "#dc2626", fontWeight: 600 }}>ถูกแบน</span>
+                      ) : (
+                        <span style={{ color: "#16a34a" }}>ปกติ</span>
+                      )}
+                    </td>
+                    <td>{c.blacklisted_date ? new Date(c.blacklisted_date).toLocaleDateString() : "-"}</td>
+                    <td>{c.reason || "-"}</td>
+                    <td>
+                      <button className="btn-outline" onClick={() => openEdit(c)} style={{ marginRight: 6 }}>
                         แก้ไข
                       </button>
-                      <button
-                        className="btn-outline"
-                        onClick={() => onDelete(c)}
-                      >
+                      <button className="btn-outline" onClick={() => onDelete(c)} style={{ marginRight: 6 }}>
                         ลบ
                       </button>
+                      {c.reason ? (
+                        <button
+                          className="btn-outline"
+                          style={{ color: "#16a34a", borderColor: "#16a34a" }}
+                          onClick={() => unban(c)}
+                        >
+                          ปลดแบน
+                        </button>
+                      ) : (
+                        <button
+                          className="btn-outline"
+                          style={{ color: "#dc2626", borderColor: "#dc2626" }}
+                          onClick={() => openBan(c)}
+                        >
+                          แบน
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))
@@ -229,137 +275,51 @@ const onDelete = async (row) => {
             </tbody>
           </table>
         </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginTop: 16,
-              flexWrap: "wrap",
-              gap: 12,
-            }}
-          >
-            {/* info */}
-            <div style={{ fontSize: 14, color: "var(--muted)" }}>
-              แสดง {paginated.length} รายการ จากทั้งหมด {filtered.length}
-            </div>
-
-            {/* rows per page */}
-            <div>
-              <label style={{ marginRight: 8 }}>แถวต่อหน้า:</label>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value));
-                  setPage(1);
-                }}
-                className="input"
-                style={{ width: 80 }}
-              >
-                <option value={5}>5</option>
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-              </select>
-            </div>
-
-            {/* buttons */}
-            <div style={{ display: "flex", gap: 6 }}>
-              <button
-                className="btn-outline"
-                disabled={page === 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                ก่อนหน้า
-              </button>
-
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((num) => (
-                <button
-                  key={num}
-                  onClick={() => setPage(num)}
-                  className="btn-outline"
-                  style={{
-                    background: num === page ? "var(--primary)" : "#fff",
-                    color: num === page ? "#fff" : "var(--primary)",
-                    minWidth: 36,
-                    height: 36,
-                    padding: 0,
-                    borderRadius: "50%",
-                    textAlign: "center",
-                  }}
-                >
-                  {num}
-                </button>
-              ))}
-
-              <button
-                className="btn-outline"
-                disabled={page === totalPages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                ถัดไป
-              </button>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Modal */}
+      {/* Modal เพิ่ม/แก้ไขลูกค้า */}
       {open && (
         <div className="modal-backdrop" onClick={() => setOpen(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()}>
             <h3>{editing ? "แก้ไขลูกค้า" : "เพิ่มลูกค้า"}</h3>
             <form onSubmit={onSubmit}>
               <div className="label">ชื่อ</div>
-              <input
-                className="input"
-                name="name"
-                value={form.name}
-                onChange={onChange}
-                required
-              />
+              <input className="input" name="name" value={form.name} onChange={onChange} required />
               <div className="label">อีเมล</div>
-              <input
-                className="input"
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={onChange}
-                required
-              />
+              <input className="input" name="email" type="email" value={form.email} onChange={onChange} required />
               <div className="label">เบอร์โทร</div>
-              <input
-                className="input"
-                name="phone"
-                value={form.phone}
-                onChange={onChange}
-              />
+              <input className="input" name="phone" value={form.phone} onChange={onChange} />
               <div className="label">ที่อยู่</div>
-              <input
-                className="input"
-                name="address"
-                value={form.address}
-                onChange={onChange}
-              />
+              <input className="input" name="address" value={form.address} onChange={onChange} />
               <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-                <button
-                  className="btn-primary"
-                  type="submit"
-                  style={{ width: "auto" }}
-                >
-                  บันทึก
-                </button>
-                <button
-                  type="button"
-                  className="btn-outline"
-                  onClick={() => setOpen(false)}
-                >
-                  ยกเลิก
-                </button>
+                <button className="btn-primary" type="submit">บันทึก</button>
+                <button type="button" className="btn-outline" onClick={() => setOpen(false)}>ยกเลิก</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal แบนลูกค้า */}
+      {banModal && (
+        <div className="modal-backdrop" onClick={() => setBanModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <h3>🚫 แบนลูกค้า {banTarget?.name}</h3>
+            <p style={{ color: "gray", marginTop: 6 }}>
+              กรุณากรอกเหตุผลการแบน เช่น ใช้ระบบไม่เหมาะสม, ค้างชำระ, ข้อมูลเท็จ ฯลฯ
+            </p>
+            <textarea
+              className="input"
+              rows="3"
+              value={banReason}
+              onChange={(e) => setBanReason(e.target.value)}
+              placeholder="กรอกเหตุผล..."
+              style={{ resize: "none", marginTop: 10 }}
+            ></textarea>
+            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
+              <button className="btn-primary" onClick={confirmBan}>ยืนยันแบน</button>
+              <button className="btn-outline" onClick={() => setBanModal(false)}>ยกเลิก</button>
+            </div>
           </div>
         </div>
       )}

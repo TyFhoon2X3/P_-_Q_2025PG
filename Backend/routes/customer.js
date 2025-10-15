@@ -10,5 +10,7 @@ router.get("/:id", authenticateToken, CustomerController.getById);
 router.post("/", authenticateToken, CustomerController.createCustomer);     
 router.put("/:id", authenticateToken, CustomerController.updateCustomer);   
 router.delete("/:id", authenticateToken, CustomerController.deleteCustomer);
+router.put("/:id/ban", authenticateToken, CustomerController.banCustomer);
+
 
 module.exports = router;

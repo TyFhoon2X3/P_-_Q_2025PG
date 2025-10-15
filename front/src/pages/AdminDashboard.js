@@ -15,67 +15,73 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import "../styles/Dashboard.css"; // ✅ import css ใหม่
 
 export default function VehicleStatsPage() {
   const [brandStats, setBrandStats] = useState([]);
   const [typeStats, setTypeStats] = useState([]);
   const [parts, setParts] = useState([]);
-
-  const token = localStorage.getItem("token"); // JWT
+  const [statusStats, setStatusStats] = useState([]);
+  const token = localStorage.getItem("token");
 
   useEffect(() => {
-    // 🚗 ดึงจำนวนรถตามยี่ห้อ
-    axios
-      .get("http://localhost:3000/api/vehicles/stats/brand", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        if (res.data.success) {
-          const cleaned = res.data.stats.map((item) => ({
-            brandname: item.brandname,
-            total: Number(item.total),
-          }));
-          setBrandStats(cleaned);
-        }
-      })
-      .catch((err) => console.error("Error fetching brand stats:", err));
+    const headers = { Authorization: `Bearer ${token}` };
 
-    // 🚙 ดึงจำนวนรถตามประเภท
-    axios
-      .get("http://localhost:3000/api/vehicles/stats/type", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        if (res.data.success) {
-          const cleaned = res.data.stats.map((item) => ({
-            typename: item.typename,
-            total: Number(item.total),
-          }));
-          setTypeStats(cleaned);
-        }
-      })
-      .catch((err) => console.error("Error fetching type stats:", err));
+    // 🚗 จำนวนรถตามยี่ห้อ
+    axios.get("http://localhost:3000/api/vehicles/stats/brand", { headers }).then((res) => {
+      if (res.data.success) {
+        setBrandStats(
+          res.data.stats.map((i) => ({
+            brandname: i.brandname,
+            total: Number(i.total),
+          }))
+        );
+      }
+    });
 
-    // 🔧 ดึงข้อมูลอะไหล่
-    axios
-      .get("http://localhost:3000/api/parts", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      .then((res) => {
-        if (res.data.success) {
-          setParts(res.data.parts || []);
-        }
-      })
-      .catch((err) => console.error("Error fetching parts:", err));
+    // 🚙 จำนวนรถตามประเภท
+    axios.get("http://localhost:3000/api/vehicles/stats/type", { headers }).then((res) => {
+      if (res.data.success) {
+        setTypeStats(
+          res.data.stats.map((i) => ({
+            typename: i.typename,
+            total: Number(i.total),
+          }))
+        );
+      }
+    });
+
+    // 🔧 ข้อมูลอะไหล่ทั้งหมด
+    axios.get("http://localhost:3000/api/parts", { headers }).then((res) => {
+      if (res.data.success) setParts(res.data.parts || []);
+    });
+
+    // 🧰 สถานะงานซ่อมทั้งหมด
+    axios.get("http://localhost:3000/api/bookings", { headers }).then((res) => {
+      if (res.data.success) {
+        const counts = {};
+        res.data.bookings.forEach((b) => {
+          counts[b.status_id] = (counts[b.status_id] || 0) + 1;
+        });
+        const mapped = [
+          { name: "⏳ รอช่าง", value: counts[1] || 0, color: "#f0ad4e" },
+          { name: "🔧 กำลังซ่อม", value: counts[2] || 0, color: "#0275d8" },
+          { name: "💰 รอชำระเงิน", value: counts[5] || 0, color: "#8b5cf6" },
+          { name: "✅ เสร็จแล้ว", value: counts[3] || 0, color: "#5cb85c" },
+          { name: "❌ ยกเลิก", value: counts[4] || 0, color: "#d9534f" },
+        ];
+        setStatusStats(mapped);
+      }
+    });
   }, [token]);
 
-  // กราฟแท่ง: จำนวนอะไหล่
+  // 🔧 กราฟจำนวนอะไหล่
   const barParts = parts.map((p) => ({
     name: p.name,
     quantity: Number(p.quantity),
   }));
 
-  // กราฟเส้น: สัดส่วนยี่ห้ออะไหล่
+  // ⚙️ สัดส่วนยี่ห้ออะไหล่
   const brandCounts = parts.reduce((acc, p) => {
     acc[p.marque] = (acc[p.marque] || 0) + Number(p.quantity);
     return acc;
@@ -85,18 +91,24 @@ export default function VehicleStatsPage() {
     value: brandCounts[k],
   }));
 
-  const COLORS = ["#4f46e5", "#10b981", "#f97316", "#8884d8", "#82ca9d", "#ffc658"];
-
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-10 text-center text-gray-800">
-        📊 Dashboard สถิติรถ & อะไหล่
-      </h1>
+    <div className="dashboard-container">
+      <h1 className="dashboard-title">📊 Dashboard สถิติรถ & งานซ่อม</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* กราฟจำนวนรถตามยี่ห้อ */}
-        <div className="bg-white shadow-lg rounded-xl p-4">
-          <h2 className="text-lg font-semibold mb-4">🚗 จำนวนรถตามยี่ห้อ</h2>
+      {/* ✅ Info Cards */}
+      <div className="info-cards">
+        {statusStats.map((s, i) => (
+          <div key={i} className="info-card">
+            <h3>{s.name}</h3>
+            <p style={{ color: s.color }}>{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* ✅ Charts */}
+      <div className="chart-grid">
+        <div className="chart-card">
+          <h2>🚗 จำนวนรถตามยี่ห้อ</h2>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={brandStats}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
@@ -109,9 +121,8 @@ export default function VehicleStatsPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* กราฟจำนวนรถตามประเภท */}
-        <div className="bg-white shadow-lg rounded-xl p-4">
-          <h2 className="text-lg font-semibold mb-4">🚙 จำนวนรถตามประเภท</h2>
+        <div className="chart-card">
+          <h2>🚙 จำนวนรถตามประเภท</h2>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={typeStats}>
               <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
@@ -124,29 +135,31 @@ export default function VehicleStatsPage() {
           </ResponsiveContainer>
         </div>
 
-        {/* กราฟจำนวนอะไหล่ */}
-        <div className="bg-white shadow-lg rounded-xl p-4">
-          <h2 className="text-lg font-semibold mb-4">🔧 จำนวนอะไหล่</h2>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={barParts}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-              <XAxis dataKey="name" />
-              <YAxis />
+        <div className="chart-card">
+          <h2>🧰 สถานะการซ่อมทั้งหมด</h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <PieChart>
+              <Pie
+                data={statusStats}
+                dataKey="value"
+                nameKey="name"
+                outerRadius={100}
+                label
+              >
+                {statusStats.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
               <Tooltip />
               <Legend />
-              <Bar dataKey="quantity" fill="#f97316" radius={[6, 6, 0, 0]} />
-            </BarChart>
+            </PieChart>
           </ResponsiveContainer>
         </div>
 
-        {/* กราฟเส้น สัดส่วนยี่ห้ออะไหล่ */}
-        <div className="bg-white shadow-lg rounded-xl p-4">
-          <h2 className="text-lg font-semibold mb-4">⚙️ สัดส่วนยี่ห้ออะไหล่</h2>
+        <div className="chart-card">
+          <h2>⚙️ สัดส่วนยี่ห้ออะไหล่</h2>
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart
-              data={lineParts}
-              margin={{ top: 20, right: 30, left: 0, bottom: 5 }}
-            >
+            <LineChart data={lineParts}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="name" />
               <YAxis />
@@ -155,9 +168,9 @@ export default function VehicleStatsPage() {
               <Line
                 type="monotone"
                 dataKey="value"
-                stroke="#8884d8"
+                stroke="#f97316"
                 strokeWidth={3}
-                dot={{ r: 5, stroke: "#fff", strokeWidth: 2, fill: "#8884d8" }}
+                dot={{ r: 5, fill: "#f97316" }}
                 label={{ position: "top" }}
               />
             </LineChart>

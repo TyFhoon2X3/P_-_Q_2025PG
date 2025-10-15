@@ -1,18 +1,18 @@
 const pool = require("../db/db");
 
 const CustomerController = {
-  // GET all customers
+  // ✅ GET all customers
   async getCustomers(req, res) {
     try {
       const result = await pool.query("SELECT * FROM users ORDER BY user_id");
       res.status(200).json({ success: true, customers: result.rows });
     } catch (error) {
-      console.error("Error fetching customers:", error.message);
+      console.error("❌ Error fetching customers:", error.message);
       res.status(500).json({ success: false, message: "Server error" });
     }
   },
 
-  // GET customer by ID
+  // ✅ GET customer by ID
   async getById(req, res) {
     const { id } = req.params;
     try {
@@ -22,12 +22,12 @@ const CustomerController = {
       }
       res.json({ success: true, customer: result.rows[0] });
     } catch (error) {
-      console.error("Error fetching customer by ID:", error.message);
+      console.error("❌ Error fetching customer by ID:", error.message);
       res.status(500).json({ success: false, message: "Server error" });
     }
   },
 
-  // CREATE new customer
+  // ✅ CREATE new customer
   async createCustomer(req, res) {
     const { name, email, password, phone, roleid, address } = req.body;
     try {
@@ -38,12 +38,12 @@ const CustomerController = {
       );
       res.status(201).json({ success: true, customer: result.rows[0] });
     } catch (error) {
-      console.error("Error creating customer:", error.message);
+      console.error("❌ Error creating customer:", error.message);
       res.status(500).json({ success: false, message: "Server error" });
     }
   },
 
-  // UPDATE customer
+  // ✅ UPDATE customer
   async updateCustomer(req, res) {
     const { id } = req.params;
     const { name, email, phone, address } = req.body;
@@ -59,12 +59,12 @@ const CustomerController = {
       }
       res.json({ success: true, customer: result.rows[0] });
     } catch (error) {
-      console.error("Error updating customer:", error.message);
+      console.error("❌ Error updating customer:", error.message);
       res.status(500).json({ success: false, message: "Server error" });
     }
   },
 
-  // DELETE customer
+  // ✅ DELETE customer
   async deleteCustomer(req, res) {
     const { id } = req.params;
     try {
@@ -74,10 +74,41 @@ const CustomerController = {
       }
       res.json({ success: true, message: "Customer deleted successfully" });
     } catch (error) {
-      console.error("Error deleting customer:", error.message);
+      console.error("❌ Error deleting customer:", error.message);
       res.status(500).json({ success: false, message: "Server error" });
     }
-  }
+  },
+
+  // ✅ BAN / UNBAN customer
+  async banCustomer(req, res) {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    try {
+      if (reason && reason.trim() !== "") {
+        // 🚫 แบนลูกค้า
+        await pool.query(
+          `UPDATE users 
+           SET reason = $1, blacklisted_date = NOW() 
+           WHERE user_id = $2`,
+          [reason, id]
+        );
+        res.json({ success: true, message: "แบนลูกค้าเรียบร้อย" });
+      } else {
+        // 🔓 ปลดแบนลูกค้า
+        await pool.query(
+          `UPDATE users 
+           SET reason = NULL, blacklisted_date = NULL 
+           WHERE user_id = $1`,
+          [id]
+        );
+        res.json({ success: true, message: "ปลดแบนลูกค้าเรียบร้อย" });
+      }
+    } catch (error) {
+      console.error("❌ Error banning/unbanning customer:", error.message);
+      res.status(500).json({ success: false, message: "Server error" });
+    }
+  },
 };
 
 module.exports = CustomerController;
