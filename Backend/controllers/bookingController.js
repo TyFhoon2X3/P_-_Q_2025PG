@@ -3,13 +3,13 @@ const pool = require("../db/db");
 const BookingController = {
   // ✅ ดึงรายการของผู้ใช้
   // ✅ ดึงรายการของผู้ใช้
-async getMine(req, res) {
-  try {
-    const userId = req.user?.user_id;
-    if (!userId)
-      return res.status(401).json({ success: false, message: "Unauthorized" });
+  async getMine(req, res) {
+    try {
+      const userId = req.user?.user_id;
+      if (!userId)
+        return res.status(401).json({ success: false, message: "Unauthorized" });
 
-    const result = await pool.query(`
+      const result = await pool.query(`
       SELECT 
         b.booking_id, b.date, b.time,
         b.status_id, s.status_name,   -- ✅ เพิ่มชื่อสถานะ
@@ -26,19 +26,19 @@ async getMine(req, res) {
       ORDER BY b.date DESC, b.time DESC;
     `, [userId]);
 
-    res.json({ success: true, bookings: result.rows });
-  } catch (err) {
-    console.error("Get my bookings error:", err.message);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-},
+      res.json({ success: true, bookings: result.rows });
+    } catch (err) {
+      console.error("Get my bookings error:", err.message);
+      res.status(500).json({ success: false, message: "Server error" });
+    }
+  },
 
 
   // ✅ ดึงทั้งหมด (Admin)
   // ✅ ดึงทั้งหมด (Admin)
-async getAll(req, res) {
-  try {
-    const result = await pool.query(`
+  async getAll(req, res) {
+    try {
+      const result = await pool.query(`
       SELECT 
         b.booking_id, b.vehicle_id, b.date, b.time,
         b.status_id, s.status_name,        -- ✅ เพิ่มสถานะ
@@ -56,12 +56,12 @@ async getAll(req, res) {
       ORDER BY b.date DESC, b.time DESC;
     `);
 
-    res.json({ success: true, bookings: result.rows });
-  } catch (err) {
-    console.error("Error fetching bookings:", err.message);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-},
+      res.json({ success: true, bookings: result.rows });
+    } catch (err) {
+      console.error("Error fetching bookings:", err.message);
+      res.status(500).json({ success: false, message: "Server error" });
+    }
+  },
 
   // ✅ ดึงรายละเอียดราย ID
   async getById(req, res) {
@@ -160,7 +160,49 @@ async getAll(req, res) {
       console.error("Delete booking error:", err.message);
       res.status(500).json({ success: false, message: "Server error" });
     }
+  },// ✅ อัปเดตค่าใช้จ่าย (freight + service)
+  async updateCost(req, res) {
+    const { id } = req.params;
+    const { freight = 0, service = 0 } = req.body;
+
+    try {
+      // ตรวจสอบว่ามี booking จริงไหม
+      const check = await pool.query(`SELECT * FROM bookings WHERE booking_id=$1`, [id]);
+      if (!check.rowCount)
+        return res.status(404).json({ success: false, message: "ไม่พบบุ๊คกิ้งนี้" });
+
+      // อัปเดตค่าใช้จ่าย
+      await pool.query(
+        `UPDATE bookings 
+       SET freight=$1, service=$2 
+       WHERE booking_id=$3`,
+        [freight, service, id]
+      );
+
+      res.json({ success: true, message: "อัปเดตค่าใช้จ่ายสำเร็จ" });
+    } catch (err) {
+      console.error("💰 Update cost error:", err.message);
+      res.status(500).json({ success: false, message: "Server error" });
+    }
   },
+  // ✅ เปลี่ยนสถานะงานซ่อม (เฉพาะ status_id)
+  async updateStatus(req, res) {
+    const { id } = req.params;
+    const { status_id } = req.body;
+
+    try {
+      const check = await pool.query(`SELECT * FROM bookings WHERE booking_id=$1`, [id]);
+      if (!check.rowCount)
+        return res.status(404).json({ success: false, message: "ไม่พบบุ๊คกิ้งนี้" });
+
+      await pool.query(`UPDATE bookings SET status_id=$1 WHERE booking_id=$2`, [status_id, id]);
+      res.json({ success: true, message: "อัปเดตสถานะสำเร็จ" });
+    } catch (err) {
+      console.error("🔄 Update status error:", err.message);
+      res.status(500).json({ success: false, message: "Server error" });
+    }
+  },
+
 };
 
 module.exports = BookingController;

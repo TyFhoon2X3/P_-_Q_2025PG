@@ -2,9 +2,6 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import Swal from "sweetalert2";
 import QRCode from "qrcode";
-import jsPDF from "jspdf";
-import "jspdf-autotable";
-import "../font/Sarabun-Regular-normal.js";
 import "../styles/UserRepair.css";
 
 export default function UserRepairStatus() {
@@ -26,6 +23,38 @@ export default function UserRepairStatus() {
     fetchMyBookings();
   }, []);
 
+
+  const cancelBooking = async () => {
+    const confirm = await Swal.fire({
+      title: "❌ ยืนยันการยกเลิกงานซ่อม?",
+      text: "หากยกเลิกแล้วจะไม่สามารถเรียกคืนได้",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "ยืนยัน",
+      cancelButtonText: "กลับ",
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    try {
+      const res = await api(`/api/bookings/${selectedBooking}/status`, {
+        method: "PUT",
+        body: { status_id: 4 },
+      });
+
+      if (res.success) {
+        Swal.fire("✅", "ยกเลิกงานซ่อมเรียบร้อยแล้ว", "success");
+        fetchMyBookings();
+        closePopup();
+      } else {
+        Swal.fire("❌", res.message || "ยกเลิกไม่สำเร็จ", "error");
+      }
+    } catch {
+      Swal.fire("❌", "เกิดข้อผิดพลาดระหว่างการยกเลิก", "error");
+    }
+  };
   // ✅ โหลดงานซ่อมเฉพาะผู้ใช้
   const fetchMyBookings = async () => {
     try {
@@ -89,7 +118,6 @@ export default function UserRepairStatus() {
     }
   };
 
-
   // ✅ เปิดรายละเอียด
   const openPopup = async (booking_id) => {
     setSelectedBooking(booking_id);
@@ -112,11 +140,10 @@ export default function UserRepairStatus() {
     setSlipFile(null);
   };
 
-  // ✅ QR PromptPay (สแกนได้จริง)
+  // ✅ QR PromptPay
   const generatePromptPayPayload = (mobileNumber, amount) => {
     const cleanNumber = mobileNumber.replace(/[^0-9]/g, "");
-    const mobile = "66" + cleanNumber.substring(1); // ✅ แก้แล้ว!
-
+    const mobile = "66" + cleanNumber.substring(1);
     const idPayloadFormat = "00";
     const idPOI = "01";
     const idMerchantInfo = "29";
@@ -154,7 +181,6 @@ export default function UserRepairStatus() {
     return crc.toString(16).toUpperCase().padStart(4, "0");
   };
 
-  // ✅ แสดง QR Code
   const showQRCode = async () => {
     try {
       const phoneNumber = "0612163450";
@@ -205,49 +231,6 @@ export default function UserRepairStatus() {
     } catch {
       Swal.fire("❌", "ไม่สามารถอัปโหลดไฟล์ได้", "error");
     }
-  };
-
-  // ✅ Print PDF
-  const printPDF = () => {
-    if (!bookingDetail) return;
-    const total = repairItems.reduce(
-      (sum, i) => sum + Number(i.unit_price) * Number(i.quantity),
-      0
-    );
-
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    doc.setFont("Sarabun-Regular");
-    doc.setFontSize(16);
-    doc.text("ใบเสร็จซ่อมรถ (Repair Invoice)", 65, 18);
-    doc.line(14, 22, 196, 22);
-
-    doc.setFontSize(11);
-    doc.text(`รหัสงาน: #${bookingDetail.booking_id}`, 14, 30);
-    doc.text(`วันที่: ${new Date(bookingDetail.date).toLocaleDateString("th-TH")}`, 130, 30);
-    doc.text(`รถ: ${bookingDetail.model} (${bookingDetail.license_plate})`, 14, 38);
-    doc.text(`รายละเอียด: ${bookingDetail.description || "-"}`, 14, 46);
-
-    const tableData = repairItems.map((i, idx) => [
-      idx + 1,
-      i.partname,
-      i.quantity,
-      `${Number(i.unit_price).toLocaleString()} ฿`,
-      `${(i.unit_price * i.quantity).toLocaleString()} ฿`,
-    ]);
-
-    doc.autoTable({
-      head: [["#", "ชื่ออะไหล่", "จำนวน", "ราคา/หน่วย", "รวม"]],
-      body: tableData,
-      startY: 56,
-      theme: "grid",
-      styles: { font: "Sarabun-Regular", fontSize: 10 },
-      headStyles: { fillColor: [50, 100, 200], textColor: 255 },
-    });
-
-    let finalY = doc.lastAutoTable.finalY + 10;
-    doc.text(`💰 รวมทั้งหมด: ${total.toLocaleString()} บาท`, 150, finalY);
-    doc.text("ลงชื่อลูกค้า ____________________", 14, finalY + 20);
-    doc.save(`Repair_${bookingDetail.booking_id}.pdf`);
   };
 
   if (loading) return <div className="loading">⏳ กำลังโหลด...</div>;
@@ -339,19 +322,30 @@ export default function UserRepairStatus() {
               </b>
             </div>
 
-            {bookingDetail.status_id === 3 && (
+            {/* ✅ ถ้า ‘รอชำระเงิน’ แสดง QR และอัปโหลดสลิป */}
+            {bookingDetail.status_id === 5 && (
               <>
                 <div className="qr-section">
-                  <button className="btn btn-success" onClick={showQRCode}>📱 แสดง QR พร้อมยอด</button>
+                  <button className="btn btn-success" onClick={showQRCode}>
+                    📱 แสดง QR พร้อมยอด
+                  </button>
                 </div>
+
                 <form onSubmit={uploadSlip} className="slip-upload">
                   <label>📎 แนบสลิปการชำระเงิน:</label>
-                  <input type="file" accept=".jpg,.jpeg,.png,.pdf" onChange={(e) => setSlipFile(e.target.files[0])} />
-                  <button className="btn btn-primary" type="submit">📤 อัปโหลด</button>
+                  <input
+                    type="file"
+                    accept=".jpg,.jpeg,.png,.pdf"
+                    onChange={(e) => setSlipFile(e.target.files[0])}
+                  />
+                  <button className="btn btn-primary" type="submit">
+                    📤 อัปโหลด
+                  </button>
                 </form>
               </>
             )}
 
+            {/* ✅ ถ้ามีสลิปแล้ว (ทุกสถานะ) แสดงภาพได้ */}
             {bookingDetail.slipfilename && (
               <div className="slip-preview">
                 <p>📄 สลิปที่แนบแล้ว:</p>
@@ -363,10 +357,26 @@ export default function UserRepairStatus() {
               </div>
             )}
 
+            {/* ✅ ถ้า “เสร็จสิ้นแล้ว” ให้ดูสลิปได้อย่างเดียว */}
+            {bookingDetail.status_id === 3 && !bookingDetail.slipfilename && (
+              <p className="slip-note">
+                📝 งานซ่อมเสร็จสิ้นแล้ว — ไม่สามารถแนบสลิปได้
+              </p>
+            )}
+
             <div className="popup-actions">
-              <button className="btn btn-print" onClick={printPDF}>🖨️ พิมพ์ใบซ่อม</button>
-              <button className="btn btn-secondary" onClick={closePopup}>ปิด</button>
+              {bookingDetail.status_id === 1 && (
+                <button className="btn btn-cancel" onClick={cancelBooking}>
+                  ❌ ยกเลิกการซ่อม
+                </button>
+              )}
+              <button className="btn btn-secondary" onClick={closePopup}>
+                ปิด
+              </button>
             </div>
+
+
+
           </div>
         </div>
       )}

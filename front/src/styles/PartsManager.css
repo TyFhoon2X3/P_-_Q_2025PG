@@ -150,3 +150,41 @@
   background-color: #e74c3c;
   color: white;
 }
+.search-box {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 15px;
+}
+
+.search-box input {
+  width: 250px;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+  gap: 5px;
+}
+
+.pagination button {
+  background: #ecf0f1;
+  border: 1px solid #bdc3c7;
+  border-radius: 5px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.pagination button:hover {
+  background: #3498db;
+  color: white;
+}
+
+.pagination .active-page {
+  background: #2980b9;
+  color: white;
+  font-weight: bold;
+}
