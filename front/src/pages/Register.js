@@ -35,16 +35,16 @@ export default function Register() {
       if (!res.ok) {
         Swal.fire({
           icon: "error",
-          title: "Register Failed",
-          text: data.message || "เกิดข้อผิดพลาด",
+          title: "❌ สมัครสมาชิกไม่สำเร็จ",
+          text: data.message || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
         });
         return;
       }
 
       Swal.fire({
         icon: "success",
-        title: "✅ Register สำเร็จ!",
-        text: "สามารถล็อกอินได้เลย",
+        title: "✅ สมัครสมาชิกสำเร็จ",
+        text: "คุณสามารถเข้าสู่ระบบได้ทันที",
         timer: 1500,
         showConfirmButton: false,
       }).then(() => nav("/login"));
@@ -52,8 +52,8 @@ export default function Register() {
       console.error(err);
       Swal.fire({
         icon: "error",
-        title: "Network Error",
-        text: "Server ไม่ตอบสนอง",
+        title: "⚠️ ข้อผิดพลาดของเครือข่าย",
+        text: "ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่ภายหลัง",
       });
     } finally {
       setLoading(false);
@@ -63,34 +63,34 @@ export default function Register() {
   return (
     <div className="register-page">
       <section className="auth-hero">
-        <h1>Create Your Account</h1>
-        <p>Fill in your details to register.</p>
+        <h1>สร้างบัญชีของคุณ</h1>
+        <p>กรอกข้อมูลด้านล่างเพื่อสมัครสมาชิก</p>
       </section>
 
       <div className="card">
         <div className="card-inner">
           <form onSubmit={onSubmit}>
-            <div className="label">Full Name</div>
+            <div className="label">ชื่อ-นามสกุล</div>
             <input
               className="input"
               name="name"
-              placeholder="Your Name"
+              placeholder="เช่น สมชาย ใจดี"
               value={form.name}
               onChange={onChange}
               required
             />
 
-            <div className="label">Email Address</div>
+            <div className="label">อีเมล</div>
             <input
               className="input"
               name="email"
-              placeholder="YOU@MAIL.COM"
+              placeholder="YOUR@EMAIL.COM"
               value={form.email}
               onChange={onChange}
               required
             />
 
-            <div className="label">Password</div>
+            <div className="label">รหัสผ่าน</div>
             <input
               className="input"
               type="password"
@@ -101,7 +101,7 @@ export default function Register() {
               required
             />
 
-            <div className="label">Phone Number</div>
+            <div className="label">เบอร์โทรศัพท์</div>
             <input
               className="input"
               type="text"
@@ -112,28 +112,27 @@ export default function Register() {
               required
             />
 
-            <div className="label">Address</div>
+            <div className="label">ที่อยู่</div>
             <input
               className="input"
               type="text"
               name="address"
-              placeholder="123 Main St, Bangkok"
+              placeholder="123 ถนนหลัก เขต/อำเภอ จังหวัด"
               value={form.address}
               onChange={onChange}
               required
             />
 
             <button className="btn-primary mt-8" type="submit" disabled={loading}>
-              {loading ? "Registering..." : "REGISTER"}
+              {loading ? "กำลังสมัครสมาชิก..." : "สมัครสมาชิก"}
             </button>
           </form>
 
           <div className="card-footer">
-            Already have an account? <Link to="/login">Login here</Link>
+            มีบัญชีอยู่แล้ว? <Link to="/login">เข้าสู่ระบบที่นี่</Link>
           </div>
         </div>
       </div>
     </div>
   );
 }
-// src/pages/UserDashboard.js

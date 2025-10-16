@@ -7,20 +7,25 @@ import Register from "./pages/Register";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserDashboard from "./pages/UserDashboard";
 import AdminCustomers from "./pages/AdminCustomers";
-import AdminVehiclesPage from "./pages/AdminVehiclesPage";  // ✅ import แค่ครั้งเดียว
+import AdminVehiclesPage from "./pages/AdminVehiclesPage";
 import BookingList from "./pages/BookingList";
 import BookingDetail from "./pages/BookingDetail";
 import MyVehicles from "./pages/MyVehicles";
 import BookService from "./pages/BookService";
 import PartsManager from "./pages/PartsManager";
 import AdminBookings from "./pages/AdminBookings";
+
 function AppRoutes() {
   const location = useLocation();
-  const hideNavbar = ["/login", "/register"].includes(location.pathname);
+
+  // กำหนด path ที่ต้องการแสดง Navbar minimal
+  const minimalNavbarPaths = ["/login", "/register"];
+  const isMinimalNavbar = minimalNavbarPaths.includes(location.pathname);
 
   return (
     <>
-      {!hideNavbar && <Navbar />}
+      <Navbar minimal={isMinimalNavbar} />
+
       <Routes>
         {/* Public */}
         <Route path="/login" element={<Login />} />
@@ -115,8 +120,6 @@ function AppRoutes() {
     </>
   );
 }
-
-
 
 export default function App() {
   return (

@@ -1,6 +1,7 @@
 // src/pages/Login.js
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import Swal from "sweetalert2";
 import "../styles/auth.css";
 
 export default function Login() {
@@ -26,18 +27,43 @@ export default function Login() {
       const data = await res.json();
 
       if (!res.ok) {
-        alert("❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง");
+        Swal.fire({
+          icon: "error",
+          title: "เกิดข้อผิดพลาด",
+          text: data.message || "❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+          confirmButtonColor: "#d33",
+        });
         return;
       }
 
+      // ✅ เก็บ token และ role
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.user.roleid);
 
-      if (data.user.roleid === "r1") nav("/admin-dashboard");
-      else nav("/user-dashboard");
+      Swal.fire({
+        icon: "success",
+        title: "เข้าสู่ระบบสำเร็จ",
+        text: `ยินดีต้อนรับ ${data.user.name || ""}`,
+        showConfirmButton: false,
+        timer: 1500,
+      });
+
+      // ✅ ไปหน้า dashboard ตาม role
+      setTimeout(() => {
+        if (data.user.roleid === "r1") {
+          nav("/admin-dashboard");
+        } else {
+          nav("/user-dashboard");
+        }
+      }, 1600);
 
     } catch (err) {
-      alert("⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์");
+      console.error(err);
+      Swal.fire({
+        icon: "warning",
+        title: "เชื่อมต่อไม่ได้",
+        text: "⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์",
+      });
     } finally {
       setLoading(false);
     }
@@ -64,9 +90,14 @@ export default function Login() {
               required
             />
 
-            <div className="label" style={{ display: "flex", justifyContent: "space-between" }}>
+            <div
+              className="label"
+              style={{ display: "flex", justifyContent: "space-between" }}
+            >
               <span>รหัสผ่าน</span>
-              <Link className="forgot" to="/forgot-password">ลืมรหัสผ่าน?</Link>
+              <Link className="forgot" to="/forgot-password">
+                ลืมรหัสผ่าน?
+              </Link>
             </div>
             <input
               className="input"
@@ -86,11 +117,17 @@ export default function Login() {
           <div className="hr-or">หรือเข้าสู่ระบบด้วย</div>
           <div className="oauth-row">
             <button className="oauth">
-              <img alt="" src="https://www.svgrepo.com/show/475656/google-color.svg" />
+              <img
+                alt=""
+                src="https://www.svgrepo.com/show/475656/google-color.svg"
+              />
               Google
             </button>
             <button className="oauth">
-              <img alt="" src="https://www.svgrepo.com/show/448224/facebook.svg" />
+              <img
+                alt=""
+                src="https://www.svgrepo.com/show/448224/facebook.svg"
+              />
               Facebook
             </button>
           </div>
@@ -103,4 +140,3 @@ export default function Login() {
     </>
   );
 }
-// src/pages/Login.jsvc
