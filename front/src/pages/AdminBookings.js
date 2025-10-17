@@ -104,6 +104,7 @@ export default function AdminRepairManager() {
     if (res.success) {
       Swal.fire("✅", "เพิ่มอะไหล่สำเร็จ", "success");
       fetchRepairItems(selected.booking_id);
+      fetchBookings(); // 🔁 โหลดใหม่เพื่ออัปเดตยอดรวม
       form.reset();
     } else {
       Swal.fire("❌", res.message || "เพิ่มไม่สำเร็จ", "error");
@@ -116,6 +117,7 @@ export default function AdminRepairManager() {
     if (res.success) {
       Swal.fire("🗑️", "ลบอะไหล่สำเร็จ", "success");
       fetchRepairItems(selected.booking_id);
+      fetchBookings();
     } else {
       Swal.fire("❌", res.message, "error");
     }
@@ -157,8 +159,6 @@ export default function AdminRepairManager() {
   };
 
   // ✅ พิมพ์ PDF
-  // ✅ พิมพ์ PDF แบบใหม่ (มีช่องลายเซ็น)
-  // ✅ พิมพ์ PDF (ใบสรุปงานซ่อมเวอร์ชันสมบูรณ์)
   const printPDF = () => {
     if (!selected) return;
 
@@ -168,7 +168,6 @@ export default function AdminRepairManager() {
     doc.text("ใบสรุปงานซ่อม (Repair Report)", 65, 18);
     doc.line(14, 22, 196, 22);
 
-    // 🧾 Header Info
     doc.setFontSize(11);
     doc.text(`เลขที่งาน: #${selected.booking_id}`, 14, 30);
     doc.text(`วันที่: ${new Date(selected.date).toLocaleDateString("th-TH")}`, 130, 30);
@@ -176,11 +175,9 @@ export default function AdminRepairManager() {
     doc.text(`รถ: ${selected.model} (${selected.license_plate})`, 14, 46);
     doc.text(`สถานะ: ${getStatus(selected.status_id).text}`, 14, 54);
 
-    // ✏️ รายละเอียดงาน
     const desc = selected.description ? selected.description.trim() : "-";
     doc.text(`รายละเอียดการซ่อม: ${desc}`, 14, 62, { maxWidth: 180 });
 
-    // 🔩 ตารางอะไหล่
     const tableData = repairItems.map((i, idx) => [
       idx + 1,
       i.partname,
@@ -193,24 +190,11 @@ export default function AdminRepairManager() {
       startY: 70,
       head: [["#", "ชื่ออะไหล่", "จำนวน", "ราคา/หน่วย (บาท)", "ราคารวม (บาท)"]],
       body: tableData,
-      styles: {
-        font: "Sarabun-Regular",
-        fontSize: 10,
-        cellPadding: { top: 3, bottom: 3, left: 3, right: 3 },
-        valign: "middle",
-      },
+      styles: { font: "Sarabun-Regular", fontSize: 10, valign: "middle" },
       headStyles: { fillColor: [40, 100, 200], textColor: 255, halign: "center" },
-      columnStyles: {
-        0: { cellWidth: 10, halign: "center" },
-        1: { cellWidth: 70, halign: "left" },
-        2: { cellWidth: 20, halign: "center" },
-        3: { cellWidth: 40, halign: "right" },
-        4: { cellWidth: 40, halign: "right" },
-      },
       theme: "striped",
     });
 
-    // 💰 สรุปยอดรวม
     const totalParts = repairItems.reduce((sum, i) => sum + i.unit_price * i.quantity, 0);
     const service = Number(selected.service || 0);
     const freight = Number(selected.freight || 0);
@@ -221,52 +205,40 @@ export default function AdminRepairManager() {
     doc.text("สรุปค่าใช้จ่าย", 14, y);
     doc.line(14, y + 2, 196, y + 2);
 
-    const rightAlign = 180; // ขยับขวาให้ห่างขึ้น
-    const labelX = 125;     // ตำแหน่งข้อความ
+    const rightAlign = 180;
+    const labelX = 125;
     y += 10;
     doc.setFontSize(11);
     doc.text("ค่าอะไหล่:", labelX, y);
     doc.text(`${totalParts.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`, rightAlign, y, { align: "right" });
-
     y += 8;
     doc.text("ค่าบริการ:", labelX, y);
     doc.text(`${service.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`, rightAlign, y, { align: "right" });
-
     if (selected.transport_required) {
       y += 8;
       doc.text("ค่าขนส่ง:", labelX, y);
       doc.text(`${freight.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`, rightAlign, y, { align: "right" });
     }
-
-    // ✅ รวมทั้งหมด (เพิ่มระยะห่างและทำให้ดูหรู)
     y += 12;
     doc.setFont("Sarabun-ExtraBold");
     doc.setFontSize(13);
     doc.text("รวมทั้งหมด:", labelX - 2, y);
     doc.text(`${grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`, rightAlign, y, { align: "right" });
 
-    // ✍️ ช่องลายเซ็น
     y += 30;
     doc.setFont("Sarabun-Regular");
     doc.setFontSize(11);
     doc.text("..........................................................", 35, y);
     doc.text("..........................................................", 135, y);
-
     y += 6;
     doc.text("(ลายเซ็นลูกค้า)", 55, y);
     doc.text("(นายอาดี อาแวหามะ)", 145, y);
-
-    // 🏁 Footer
     y += 10;
     doc.setFontSize(10);
     doc.setTextColor(120, 120, 120);
     doc.text("ขอบคุณที่ใช้บริการ P&Q Garage — บริการซ่อมรถครบวงจร", 55, y);
-
     doc.save(`Repair_${selected.booking_id}.pdf`);
   };
-
-
-
 
   // 🔍 ฟิลเตอร์
   useEffect(() => {
@@ -334,7 +306,7 @@ export default function AdminRepairManager() {
         </tbody>
       </table>
 
-      {/* 🪄 Popup ใหม่แบบ UX/UI สวย */}
+      {/* 🪄 Popup งานซ่อม */}
       {selected && (
         <div className="popup-overlay" onClick={closePopup}>
           <div className="popup-card" onClick={(e) => e.stopPropagation()}>
@@ -343,6 +315,7 @@ export default function AdminRepairManager() {
               <button className="btn-close" onClick={closePopup}>✖</button>
             </header>
 
+            {/* 🔧 ข้อมูลทั่วไป */}
             <section className="popup-section info">
               <h4>🔧 ข้อมูลทั่วไป</h4>
               <div className="info-grid">
@@ -362,6 +335,7 @@ export default function AdminRepairManager() {
               </div>
             </section>
 
+            {/* 🧩 รายการอะไหล่ */}
             <section className="popup-section parts">
               <h4>🧩 รายการอะไหล่</h4>
               <table className="small-table">
@@ -410,10 +384,10 @@ export default function AdminRepairManager() {
                   />
                   <button className="btn btn-add">➕ เพิ่ม</button>
                 </form>
-
               )}
             </section>
 
+            {/* 💰 ค่าใช้จ่าย */}
             <section className="popup-section cost">
               <h4>💰 ค่าใช้จ่าย</h4>
               <form onSubmit={updateCost} className="cost-form">
@@ -435,6 +409,20 @@ export default function AdminRepairManager() {
                   + Number(selected.service || 0)
                 ).toLocaleString()} ฿</b></h4>
               </div>
+            </section>
+
+            {/* 📸 สลิป */}
+            <section className="popup-section slip">
+              <h4>📸 สลิปการชำระเงิน</h4>
+              {selected.slipfilename ? (
+                <img
+                  src={`http://localhost:3000/uploads/${selected.slipfilename}`}
+                  alt="Slip"
+                  className="slip-image"
+                />
+              ) : (
+                <p style={{ color: "#888" }}>ยังไม่มีการอัปโหลดสลิป</p>
+              )}
             </section>
 
             <footer className="popup-actions">
