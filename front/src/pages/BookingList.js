@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import Swal from "sweetalert2";
+import QRCode from "qrcode";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import "../font/Sarabun-Regular-normal.js";
-import "../font/Sarabun-ExtraBold-normal.js";
 import "../styles/UserRepair.css";
 
 export default function UserRepairStatus() {
@@ -15,11 +15,17 @@ export default function UserRepairStatus() {
   const [loading, setLoading] = useState(true);
   const [slipFile, setSlipFile] = useState(null);
 
+  // 🔍 ตัวกรอง
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
   useEffect(() => {
     fetchBookings();
   }, []);
 
-  // ✅ โหลดรายการซ่อมของผู้ใช้
+  // ✅ โหลดข้อมูล booking ของผู้ใช้
   const fetchBookings = async () => {
     try {
       const res = await api("/api/bookings/mine");
@@ -35,16 +41,17 @@ export default function UserRepairStatus() {
     }
   };
 
-  // ✅ โหลดรายการอะไหล่
-  const fetchRepairItems = async (id) => {
+  // ✅ โหลดรายการอะไหล่ของ booking
+  const fetchRepairItems = async (bookingId) => {
     try {
-      const res = await api(`/api/repair-items/${id}`);
+      const res = await api(`/api/repair-items/${bookingId}`);
       if (res.success) setRepairItems(res.items || []);
     } catch {
       setRepairItems([]);
     }
   };
 
+  // ✅ ฟังก์ชันเปลี่ยนสถานะ
   const getStatus = (id) => {
     switch (Number(id)) {
       case 1: return { text: "⏳ รอช่าง", class: "pending" };
@@ -56,6 +63,7 @@ export default function UserRepairStatus() {
     }
   };
 
+  // ✅ เปิด popup รายละเอียด
   const openDetail = async (b) => {
     setSelectedBooking(b);
     await fetchRepairItems(b.booking_id);
@@ -66,101 +74,44 @@ export default function UserRepairStatus() {
     setRepairItems([]);
   };
 
-  // ✅ อัปโหลด slip
+  // ✅ อัปโหลดสลิป
   const uploadSlip = async (bookingId) => {
     if (!slipFile) return Swal.fire("⚠️", "กรุณาเลือกไฟล์ก่อนอัปโหลด", "warning");
     const formData = new FormData();
     formData.append("slip", slipFile);
+
     try {
-      const res = await api(`/api/bookings/${bookingId}/slip`, { method: "POST", body: formData });
+      const res = await api(`/api/bookings/${bookingId}/slip`, {
+        method: "POST",
+        body: formData,
+      });
       if (res.success) {
         Swal.fire("✅", "อัปโหลดสลิปสำเร็จ!", "success");
-        fetchBookings();
+        setSlipFile(null);
+        fetchBookings(); // 🔁 โหลดข้อมูลใหม่
         closePopup();
+      } else {
+        Swal.fire("❌", res.message || "อัปโหลดไม่สำเร็จ", "error");
       }
     } catch {
       Swal.fire("❌", "เกิดข้อผิดพลาดในการอัปโหลด", "error");
     }
   };
 
-  // ✅ ฟังก์ชันพิมพ์ PDF (สำหรับลูกค้า)
-  const printReceipt = () => {
-    if (!selectedBooking) return;
-
-    const doc = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-    doc.setFont("Sarabun-Regular");
-    doc.setFontSize(16);
-    doc.text("ใบเสร็จการซ่อมรถ (Customer Repair Receipt)", 45, 18);
-    doc.line(14, 22, 196, 22);
-
-    // 🧾 Header Info
-    doc.setFontSize(11);
-    doc.text(`เลขที่งาน: #${selectedBooking.booking_id}`, 14, 30);
-    doc.text(`วันที่: ${new Date(selectedBooking.date).toLocaleDateString("th-TH")}`, 130, 30);
-    doc.text(`ลูกค้า: ${selectedBooking.owner_name}`, 14, 38);
-    doc.text(`รถ: ${selectedBooking.model} (${selectedBooking.license_plate})`, 14, 46);
-    doc.text(`สถานะ: ${getStatus(selectedBooking.status_id).text}`, 14, 54);
-
-    const desc = selectedBooking.description ? selectedBooking.description.trim() : "-";
-    doc.text(`รายละเอียดการซ่อม: ${desc}`, 14, 62, { maxWidth: 180 });
-
-    // 🔩 ตารางอะไหล่
-    const tableData = repairItems.map((i, idx) => [
-      idx + 1,
-      i.partname,
-      i.quantity,
-      `${Number(i.unit_price).toLocaleString("th-TH", { minimumFractionDigits: 2 })}`,
-      `${(i.unit_price * i.quantity).toLocaleString("th-TH", { minimumFractionDigits: 2 })}`,
-    ]);
-
-    doc.autoTable({
-      startY: 70,
-      head: [["#", "ชื่ออะไหล่", "จำนวน", "ราคา/หน่วย (บาท)", "ราคารวม (บาท)"]],
-      body: tableData,
-      styles: { font: "Sarabun-Regular", fontSize: 10, valign: "middle" },
-      headStyles: { fillColor: [33, 102, 172], textColor: 255, halign: "center" },
-      theme: "striped",
-    });
-
-    const totalParts = repairItems.reduce((sum, i) => sum + i.unit_price * i.quantity, 0);
-    const service = Number(selectedBooking.service || 0);
-    const freight = Number(selectedBooking.freight || 0);
-    const grandTotal = totalParts + service + freight;
-
-    let y = doc.lastAutoTable.finalY + 12;
-    doc.setFontSize(12);
-    doc.text("สรุปค่าใช้จ่าย", 14, y);
-    doc.line(14, y + 2, 196, y + 2);
-
-    const labelX = 125, rightX = 180;
-    y += 10;
-    doc.text("ค่าอะไหล่:", labelX, y);
-    doc.text(`${totalParts.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`, rightX, y, { align: "right" });
-
-    y += 8;
-    doc.text("ค่าบริการ:", labelX, y);
-    doc.text(`${service.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`, rightX, y, { align: "right" });
-
-    if (selectedBooking.transport_required) {
-      y += 8;
-      doc.text("ค่าขนส่ง:", labelX, y);
-      doc.text(`${freight.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`, rightX, y, { align: "right" });
-    }
-
-    y += 12;
-    doc.setFont("Sarabun-ExtraBold");
-    doc.setFontSize(13);
-    doc.text("รวมทั้งหมด:", labelX - 2, y);
-    doc.text(`${grandTotal.toLocaleString("th-TH", { minimumFractionDigits: 2 })} บาท`, rightX, y, { align: "right" });
-
-    // ✅ Footer
-    y += 25;
-    doc.setFont("Sarabun-Regular");
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text("ขอบคุณที่ใช้บริการ P&Q Garage", 80, y);
-    doc.save(`Receipt_${selectedBooking.booking_id}.pdf`);
-  };
+  // ✅ ฟิลเตอร์ค้นหา
+  useEffect(() => {
+    let data = bookings;
+    if (searchTerm)
+      data = data.filter(
+        (b) =>
+          b.license_plate?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          b.model?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    if (statusFilter !== "all") data = data.filter((b) => String(b.status_id) === String(statusFilter));
+    if (startDate) data = data.filter((b) => new Date(b.date) >= new Date(startDate));
+    if (endDate) data = data.filter((b) => new Date(b.date) <= new Date(endDate));
+    setFiltered(data);
+  }, [searchTerm, statusFilter, startDate, endDate, bookings]);
 
   if (loading) return <div className="loading">⏳ กำลังโหลด...</div>;
 
@@ -168,6 +119,27 @@ export default function UserRepairStatus() {
     <div className="user-page">
       <h2 className="user-title">🔧 ติดตามสถานะงานซ่อม</h2>
 
+      {/* ฟิลเตอร์ */}
+      <div className="filter-bar">
+        <input
+          type="text"
+          placeholder="ค้นหา (ทะเบียน / รุ่น)"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="all">ทุกสถานะ</option>
+          <option value="1">รอช่าง</option>
+          <option value="2">กำลังซ่อม</option>
+          <option value="5">รอชำระ</option>
+          <option value="3">เสร็จแล้ว</option>
+          <option value="4">ยกเลิก</option>
+        </select>
+        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+      </div>
+
+      {/* ตาราง */}
       <table className="user-table">
         <thead>
           <tr>
@@ -192,7 +164,7 @@ export default function UserRepairStatus() {
         </tbody>
       </table>
 
-      {/* 📄 Popup รายละเอียด */}
+      {/* Popup รายละเอียด */}
       {selectedBooking && (
         <div className="popup-overlay" onClick={closePopup}>
           <div className="popup-card" onClick={(e) => e.stopPropagation()}>
@@ -236,7 +208,7 @@ export default function UserRepairStatus() {
               <p>รวมทั้งหมด: <b>{Number(selectedBooking.total_price || 0).toLocaleString()} ฿</b></p>
             </section>
 
-            {/* 📸 สลิป */}
+            {/* 📸 แสดงสลิป */}
             <section className="popup-section slip">
               <h4>📸 สลิปการชำระเงิน</h4>
               {selectedBooking.slipfilename ? (
@@ -250,8 +222,17 @@ export default function UserRepairStatus() {
                   <p style={{ color: "#888" }}>ยังไม่มีการอัปโหลดสลิป</p>
                   {selectedBooking.status_id === 5 && (
                     <div className="upload-section">
-                      <input type="file" accept="image/*" onChange={(e) => setSlipFile(e.target.files[0])} />
-                      <button className="btn btn-upload" onClick={() => uploadSlip(selectedBooking.booking_id)}>📤 อัปโหลดสลิป</button>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => setSlipFile(e.target.files[0])}
+                      />
+                      <button
+                        className="btn btn-upload"
+                        onClick={() => uploadSlip(selectedBooking.booking_id)}
+                      >
+                        📤 อัปโหลดสลิป
+                      </button>
                     </div>
                   )}
                 </>
@@ -259,7 +240,6 @@ export default function UserRepairStatus() {
             </section>
 
             <footer className="popup-actions">
-              <button className="btn btn-print" onClick={printReceipt}>🖨️ พิมพ์ใบเสร็จ</button>
               <button className="btn btn-secondary" onClick={closePopup}>ปิด</button>
             </footer>
           </div>
