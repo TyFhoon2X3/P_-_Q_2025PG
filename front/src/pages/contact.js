@@ -12,23 +12,23 @@ export default function Contact() {
 
       <div className="contact-section">
         <h3>🏠 ที่อยู่</h3>
-        <p>เลขที่ 88/9 ถนน 4153 ต.หนองไทร อ. พุนพิน จ.สุราษฎร์ธานี 84000</p>
+        <p>123 ถนนหลัก ตำบลเมือง อำเภอหาดใหญ่ จังหวัดสงขลา 90110</p>
       </div>
 
       <div className="contact-section">
         <h3>📞 โทรศัพท์</h3>
-        <p>0837607387</p>
+        <p>074-123456, 081-234-5678</p>
       </div>
 
       <div className="contact-section">
         <h3>📧 อีเมล</h3>
-        <p>pqgarage@gmail.com</p>
+        <p>pqgarage@example.com</p>
       </div>
 
       <div className="contact-section">
         <h3>🕐 เวลาทำการ</h3>
         <p>จันทร์ – เสาร์ : 08:30 – 18:00 น.</p>
-        <p>หยุดทุกวันอาทิตย์</p>
+        <p>หยุดวันอาทิตย์</p>
       </div>
     </div>
   );
