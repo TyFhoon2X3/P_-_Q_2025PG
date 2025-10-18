@@ -21,7 +21,7 @@ router.post("/:id/slip", verifyToken, upload.single("slip"), BookingController.u
 
 // ✅ routes ปกติ
 router.get("/mine", verifyToken, BookingController.getMine);
-router.get("/", verifyToken, BookingController.getAll);
+// router.get("/", verifyToken, BookingController.getAll);
 router.get("/:id", verifyToken, BookingController.getById);
 router.post("/", verifyToken, BookingController.create);
 router.put("/:id", verifyToken, BookingController.update);
