@@ -13,7 +13,7 @@ export default function UserRepairStatus() {
   const [loading, setLoading] = useState(true);
   const [slipFile, setSlipFile] = useState(null);
 
-  // 🔍 ตัวกรอง
+  // 🔍 ฟิลเตอร์
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [startDate, setStartDate] = useState("");
@@ -23,7 +23,23 @@ export default function UserRepairStatus() {
     fetchMyBookings();
   }, []);
 
+  // ✅ โหลดงานซ่อมของผู้ใช้
+  const fetchMyBookings = async () => {
+    try {
+      const data = await api("/api/bookings/mine");
+      if (data.success) {
+        const sorted = data.bookings.sort((a, b) => new Date(b.date) - new Date(a.date));
+        setBookings(sorted);
+        setFiltered(sorted);
+      }
+    } catch {
+      Swal.fire("❌", "โหลดข้อมูลงานซ่อมไม่สำเร็จ", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  // ✅ ยกเลิกงานซ่อม
   const cancelBooking = async () => {
     const confirm = await Swal.fire({
       title: "❌ ยืนยันการยกเลิกงานซ่อม?",
@@ -43,7 +59,6 @@ export default function UserRepairStatus() {
         method: "PUT",
         body: { status_id: 4 },
       });
-
       if (res.success) {
         Swal.fire("✅", "ยกเลิกงานซ่อมเรียบร้อยแล้ว", "success");
         fetchMyBookings();
@@ -55,23 +70,8 @@ export default function UserRepairStatus() {
       Swal.fire("❌", "เกิดข้อผิดพลาดระหว่างการยกเลิก", "error");
     }
   };
-  // ✅ โหลดงานซ่อมเฉพาะผู้ใช้
-  const fetchMyBookings = async () => {
-    try {
-      const data = await api("/api/bookings/mine");
-      if (data.success) {
-        const sorted = data.bookings.sort((a, b) => new Date(b.date) - new Date(a.date));
-        setBookings(sorted);
-        setFiltered(sorted);
-      }
-    } catch {
-      Swal.fire("❌", "โหลดข้อมูลงานซ่อมไม่สำเร็จ", "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  // ✅ ฟังก์ชันกรองข้อมูล
+  // ✅ ฟิลเตอร์การค้นหา
   useEffect(() => {
     let data = bookings;
 
@@ -84,18 +84,13 @@ export default function UserRepairStatus() {
           b.description?.toLowerCase().includes(term)
       );
     }
-
-    if (statusFilter !== "all") {
-      data = data.filter((b) => String(b.status_id) === String(statusFilter));
-    }
-
+    if (statusFilter !== "all") data = data.filter((b) => String(b.status_id) === String(statusFilter));
     if (startDate && endDate) {
       data = data.filter((b) => {
         const d = new Date(b.date);
         return d >= new Date(startDate) && d <= new Date(endDate);
       });
     }
-
     setFiltered(data);
   }, [searchTerm, statusFilter, startDate, endDate, bookings]);
 
@@ -107,6 +102,7 @@ export default function UserRepairStatus() {
     setFiltered(bookings);
   };
 
+  // ✅ สถานะ
   const getStatus = (id) => {
     switch (id) {
       case 1: return { text: "⏳ รอช่าง", class: "pending" };
@@ -184,10 +180,11 @@ export default function UserRepairStatus() {
   const showQRCode = async () => {
     try {
       const phoneNumber = "0612163450";
-      const totalAmount = repairItems.reduce(
-        (sum, i) => sum + Number(i.unit_price) * Number(i.quantity),
-        0
-      );
+      const totalAmount =
+        Number(bookingDetail.cost || 0) +
+        Number(bookingDetail.service || 0) +
+        Number(bookingDetail.freight || 0);
+
       const payload = generatePromptPayPayload(phoneNumber, totalAmount);
       const qrImage = await QRCode.toDataURL(payload, { width: 250 });
 
@@ -196,7 +193,7 @@ export default function UserRepairStatus() {
         html: `
           <p>ยอดชำระทั้งหมด <b>${totalAmount.toLocaleString()} บาท</b></p>
           <img src="${qrImage}" alt="QR Payment" style="width:230px; border-radius:10px; margin-top:10px;" />
-          <p style="margin-top:10px; font-weight:bold;">ชื่อบัญชี: ร้าน P&Q Garage</p>
+          <p style="margin-top:10px; font-weight:bold;">ชื่อบัญชี: ร้าน P&Q Garage Auto Repair</p>
           <p>พร้อมเพย์: ${phoneNumber}</p>
         `,
         confirmButtonText: "ปิด",
@@ -239,7 +236,7 @@ export default function UserRepairStatus() {
     <div className="user-page">
       <h1 className="user-title">🚗 งานซ่อมของฉัน</h1>
 
-      {/* 🔍 Filter Bar */}
+      {/* 🔍 Filter */}
       <div className="filter-bar">
         <input
           type="text"
@@ -259,7 +256,7 @@ export default function UserRepairStatus() {
         <button className="btn btn-secondary" onClick={resetFilters}>รีเซ็ต</button>
       </div>
 
-      {/* ตาราง */}
+      {/* ตารางงาน */}
       <table className="user-table">
         <thead>
           <tr><th>รหัส</th><th>วันที่</th><th>เวลา</th><th>รถ</th><th>รายละเอียด</th><th>สถานะ</th><th>จัดการ</th></tr>
@@ -282,7 +279,7 @@ export default function UserRepairStatus() {
         </tbody>
       </table>
 
-      {/* Popup */}
+      {/* Popup รายละเอียด */}
       {selectedBooking && bookingDetail && (
         <div className="popup-overlay">
           <div className="popup-card compact">
@@ -316,13 +313,26 @@ export default function UserRepairStatus() {
               </tbody>
             </table>
 
-            <div className="total-mini">
-              💰 รวมทั้งหมด: <b>
-                {repairItems.reduce((sum, i) => sum + Number(i.unit_price) * Number(i.quantity), 0).toLocaleString()} ฿
-              </b>
+            {/* ✅ สรุปค่าใช้จ่าย */}
+            <div className="total-section">
+              <h4>💰 สรุปค่าใช้จ่าย</h4>
+              <p>ค่าอะไหล่: <b>{Number(bookingDetail.cost || 0).toLocaleString()} ฿</b></p>
+              <p>ค่าแรงช่าง: <b>{Number(bookingDetail.service || 0).toLocaleString()} ฿</b></p>
+              <p>ค่ารับ-ส่งรถ: <b>{Number(bookingDetail.freight || 0).toLocaleString()} ฿</b></p>
+              <hr />
+              <p style={{ fontSize: "16px" }}>
+                รวมทั้งหมด:{" "}
+                <b style={{ color: "#007bff" }}>
+                  {(
+                    Number(bookingDetail.cost || 0) +
+                    Number(bookingDetail.service || 0) +
+                    Number(bookingDetail.freight || 0)
+                  ).toLocaleString()} ฿
+                </b>
+              </p>
             </div>
 
-            {/* ✅ ถ้า ‘รอชำระเงิน’ แสดง QR และอัปโหลดสลิป */}
+            {/* ✅ QR PromptPay */}
             {bookingDetail.status_id === 5 && (
               <>
                 <div className="qr-section">
@@ -345,7 +355,7 @@ export default function UserRepairStatus() {
               </>
             )}
 
-            {/* ✅ ถ้ามีสลิปแล้ว (ทุกสถานะ) แสดงภาพได้ */}
+            {/* ✅ แสดงสลิปถ้ามี */}
             {bookingDetail.slipfilename && (
               <div className="slip-preview">
                 <p>📄 สลิปที่แนบแล้ว:</p>
@@ -355,13 +365,6 @@ export default function UserRepairStatus() {
                   className="slip-img"
                 />
               </div>
-            )}
-
-            {/* ✅ ถ้า “เสร็จสิ้นแล้ว” ให้ดูสลิปได้อย่างเดียว */}
-            {bookingDetail.status_id === 3 && !bookingDetail.slipfilename && (
-              <p className="slip-note">
-                📝 งานซ่อมเสร็จสิ้นแล้ว — ไม่สามารถแนบสลิปได้
-              </p>
             )}
 
             <div className="popup-actions">
@@ -374,9 +377,6 @@ export default function UserRepairStatus() {
                 ปิด
               </button>
             </div>
-
-
-
           </div>
         </div>
       )}
