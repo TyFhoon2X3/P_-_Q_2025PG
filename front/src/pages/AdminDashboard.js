@@ -15,7 +15,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import "../styles/Dashboard.css"; // ✅ import css ใหม่
+import "../styles/Dashboard.css"; 
 
 export default function VehicleStatsPage() {
   const [brandStats, setBrandStats] = useState([]);
@@ -27,7 +27,7 @@ export default function VehicleStatsPage() {
   useEffect(() => {
     const headers = { Authorization: `Bearer ${token}` };
 
-    // 🚗 จำนวนรถตามยี่ห้อ
+    
     axios.get("http://localhost:3000/api/vehicles/stats/brand", { headers }).then((res) => {
       if (res.data.success) {
         setBrandStats(
@@ -39,7 +39,7 @@ export default function VehicleStatsPage() {
       }
     });
 
-    // 🚙 จำนวนรถตามประเภท
+   
     axios.get("http://localhost:3000/api/vehicles/stats/type", { headers }).then((res) => {
       if (res.data.success) {
         setTypeStats(
@@ -51,12 +51,12 @@ export default function VehicleStatsPage() {
       }
     });
 
-    // 🔧 ข้อมูลอะไหล่ทั้งหมด
+    
     axios.get("http://localhost:3000/api/parts", { headers }).then((res) => {
       if (res.data.success) setParts(res.data.parts || []);
     });
 
-    // 🧰 สถานะงานซ่อมทั้งหมด
+  
     axios.get("http://localhost:3000/api/bookings", { headers }).then((res) => {
       if (res.data.success) {
         const counts = {};
