@@ -71,7 +71,6 @@ export default function UserRepairStatus() {
     }
   };
 
-<<<<<<< HEAD
   // ✅ เปลี่ยนสถานะข้อความ
   const getStatus = (id) => {
     switch (Number(id)) {
@@ -87,36 +86,7 @@ export default function UserRepairStatus() {
         return { text: "❌ ยกเลิก", class: "cancel" };
       default:
         return { text: "-", class: "" };
-=======
-  // ✅ ฟิลเตอร์การค้นหา
-  useEffect(() => {
-    let data = bookings;
-
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      data = data.filter(
-        (b) =>
-          b.license_plate?.toLowerCase().includes(term) ||
-          b.model?.toLowerCase().includes(term) ||
-          b.description?.toLowerCase().includes(term)
-      );
     }
-    if (statusFilter !== "all") data = data.filter((b) => String(b.status_id) === String(statusFilter));
-    if (startDate && endDate) {
-      data = data.filter((b) => {
-        const d = new Date(b.date);
-        return d >= new Date(startDate) && d <= new Date(endDate);
-      });
-    }
-    setFiltered(data);
-  }, [searchTerm, statusFilter, startDate, endDate, bookings]);
-
-  const resetFilters = () => {
-    setSearchTerm("");
-    setStatusFilter("all");
-    setStartDate("");
-    setEndDate("");
-    setFiltered(bookings);
   };
 
   // ✅ สถานะ
@@ -157,11 +127,9 @@ export default function UserRepairStatus() {
 <<<<<<< HEAD
   // ✅ อัปโหลดสลิป
   const uploadSlip = async (bookingId) => {
-  if (!slipFile)
-    return Swal.fire("⚠️", "กรุณาเลือกไฟล์ก่อนอัปโหลด", "warning");
-
-  const formData = new FormData();
-  formData.append("slip", slipFile);
+    if (!slipFile) return Swal.fire("⚠️", "กรุณาเลือกไฟล์ก่อนอัปโหลด", "warning");
+    const formData = new FormData();
+    formData.append("slip", slipFile);
 
   try {
     const res = await api(`/api/bookings/${bookingId}/slip`, {
@@ -189,12 +157,6 @@ export default function UserRepairStatus() {
     const cleanNumber = mobileNumber.replace(/[^0-9]/g, "");
     const mobile = "66" + cleanNumber.substring(1);
 
-=======
-  // ✅ QR PromptPay
-  const generatePromptPayPayload = (mobileNumber, amount) => {
-    const cleanNumber = mobileNumber.replace(/[^0-9]/g, "");
-    const mobile = "66" + cleanNumber.substring(1);
->>>>>>> d3480cde3ae02edeed9c4ebf02c2279628111cca
     const idPayloadFormat = "00";
     const idPOI = "01";
     const idMerchantInfo = "29";
@@ -204,7 +166,6 @@ export default function UserRepairStatus() {
     const idCRC = "63";
 
     let payload =
-<<<<<<< HEAD
       idPayloadFormat +
       "02" +
       "01" +
@@ -218,13 +179,6 @@ export default function UserRepairStatus() {
       idTransactionCurrency +
       "03" +
       "764";
-=======
-      idPayloadFormat + "02" + "01" +
-      idPOI + "02" + "11" +
-      idMerchantInfo + "37" +
-      "0016A000000677010111011300" + mobile +
-      idTransactionCurrency + "03" + "764";
->>>>>>> d3480cde3ae02edeed9c4ebf02c2279628111cca
 
     const amt = amount.toFixed(2);
     const len = amt.length.toString().padStart(2, "0");
@@ -237,27 +191,17 @@ export default function UserRepairStatus() {
   };
 
   const computeCRC16 = (payload) => {
-<<<<<<< HEAD
     let crc = 0xffff;
     for (let i = 0; i < payload.length; i++) {
       crc ^= payload.charCodeAt(i) << 8;
       for (let j = 0; j < 8; j++) {
         crc = crc & 0x8000 ? (crc << 1) ^ 0x1021 : crc << 1;
         crc &= 0xffff;
-=======
-    let crc = 0xFFFF;
-    for (let i = 0; i < payload.length; i++) {
-      crc ^= payload.charCodeAt(i) << 8;
-      for (let j = 0; j < 8; j++) {
-        crc = (crc & 0x8000) ? (crc << 1) ^ 0x1021 : crc << 1;
-        crc &= 0xFFFF;
->>>>>>> d3480cde3ae02edeed9c4ebf02c2279628111cca
       }
     }
     return crc.toString(16).toUpperCase().padStart(4, "0");
   };
 
-<<<<<<< HEAD
   // ✅ แสดง QR Code
   const showQRCode = async () => {
     const phoneNumber = "0612163450"; // 📱 พร้อมเพย์ร้าน
@@ -284,7 +228,7 @@ export default function UserRepairStatus() {
         confirmButtonText: "ปิด",
       });
     } catch {
-      Swal.fire("❌", "ไม่สามารถสร้าง QR Code ได้", "error");
+      Swal.fire("❌", "เกิดข้อผิดพลาดในการอัปโหลด", "error");
     }
   };
 
@@ -297,12 +241,9 @@ export default function UserRepairStatus() {
           b.license_plate?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           b.model?.toLowerCase().includes(searchTerm.toLowerCase())
       );
-    if (statusFilter !== "all")
-      data = data.filter((b) => String(b.status_id) === String(statusFilter));
-    if (startDate)
-      data = data.filter((b) => new Date(b.date) >= new Date(startDate));
-    if (endDate)
-      data = data.filter((b) => new Date(b.date) <= new Date(endDate));
+    if (statusFilter !== "all") data = data.filter((b) => String(b.status_id) === String(statusFilter));
+    if (startDate) data = data.filter((b) => new Date(b.date) >= new Date(startDate));
+    if (endDate) data = data.filter((b) => new Date(b.date) <= new Date(endDate));
     setFiltered(data);
   }, [searchTerm, statusFilter, startDate, endDate, bookings]);
 
@@ -375,7 +316,6 @@ export default function UserRepairStatus() {
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
-<<<<<<< HEAD
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -397,18 +337,6 @@ export default function UserRepairStatus() {
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
         />
-=======
-        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-          <option value="all">ทั้งหมด</option>
-          <option value="1">⏳ รอช่าง</option>
-          <option value="2">🔧 กำลังซ่อม</option>
-          <option value="3">✅ เสร็จแล้ว</option>
-          <option value="4">❌ ยกเลิก</option>
-        </select>
-        <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-        <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-        <button className="btn btn-secondary" onClick={resetFilters}>รีเซ็ต</button>
->>>>>>> d3480cde3ae02edeed9c4ebf02c2279628111cca
       </div>
 
       {/* ตารางงาน */}
@@ -416,13 +344,7 @@ export default function UserRepairStatus() {
         <thead>
 <<<<<<< HEAD
           <tr>
-            <th>#</th>
-            <th>วันที่</th>
-            <th>เวลา</th>
-            <th>รถ</th>
-            <th>สถานะ</th>
-            <th>ยอดรวม</th>
-            <th>จัดการ</th>
+            <th>#</th><th>วันที่</th><th>เวลา</th><th>รถ</th><th>สถานะ</th><th>ยอดรวม</th><th>จัดการ</th>
           </tr>
 =======
           <tr><th>รหัส</th><th>วันที่</th><th>เวลา</th><th>รถ</th><th>รายละเอียด</th><th>สถานะ</th><th>จัดการ</th></tr>
@@ -436,7 +358,6 @@ export default function UserRepairStatus() {
                 <td>{b.booking_id}</td>
                 <td>{new Date(b.date).toLocaleDateString("th-TH")}</td>
                 <td>{b.time}</td>
-<<<<<<< HEAD
                 <td>
                   {b.license_plate} ({b.model})
                 </td>
@@ -452,12 +373,6 @@ export default function UserRepairStatus() {
                     🔍 ดูรายละเอียด
                   </button>
                 </td>
-=======
-                <td>{b.license_plate} ({b.model})</td>
-                <td>{b.description || "-"}</td>
-                <td><span className={`status-badge ${s.class}`}>{s.text}</span></td>
-                <td><button className="btn btn-detail" onClick={() => openPopup(b.booking_id)}>🧾 จัดการ</button></td>
->>>>>>> d3480cde3ae02edeed9c4ebf02c2279628111cca
               </tr>
             );
           })}
@@ -471,9 +386,7 @@ export default function UserRepairStatus() {
           <div className="popup-card" onClick={(e) => e.stopPropagation()}>
             <header className="popup-header">
               <h3>🧾 รายละเอียดงาน #{selectedBooking.booking_id}</h3>
-              <button className="btn-close" onClick={closePopup}>
-                ✖
-              </button>
+              <button className="btn-close" onClick={closePopup}>✖</button>
             </header>
 
             <p>
@@ -508,24 +421,6 @@ export default function UserRepairStatus() {
                   <th>ราคา/หน่วย</th>
                   <th>รวม</th>
                 </tr>
-=======
-      {selectedBooking && bookingDetail && (
-        <div className="popup-overlay">
-          <div className="popup-card compact">
-            <h4 className="popup-title">🧾 งานซ่อม #{selectedBooking}</h4>
-
-            <div className="info-grid">
-              <div><b>รถ:</b> {bookingDetail.model} ({bookingDetail.license_plate})</div>
-              <div><b>วันที่:</b> {new Date(bookingDetail.date).toLocaleDateString("th-TH")}</div>
-              <div><b>เวลา:</b> {bookingDetail.time}</div>
-              <div><b>รายละเอียด:</b> {bookingDetail.description || "-"}</div>
-              <div><b>สถานะ:</b> {getStatus(bookingDetail.status_id).text}</div>
-            </div>
-
-            <table className="table small">
-              <thead>
-                <tr><th>ชื่ออะไหล่</th><th>จำนวน</th><th>ราคา/หน่วย</th><th>รวม</th></tr>
->>>>>>> d3480cde3ae02edeed9c4ebf02c2279628111cca
               </thead>
               <tbody>
                 {repairItems.length > 0 ? (
@@ -533,27 +428,18 @@ export default function UserRepairStatus() {
                     <tr key={i.part_id}>
                       <td>{i.partname}</td>
                       <td>{i.quantity}</td>
-<<<<<<< HEAD
                       <td>{i.unit_price.toLocaleString()} ฿</td>
-=======
-                      <td>{Number(i.unit_price).toLocaleString()} ฿</td>
->>>>>>> d3480cde3ae02edeed9c4ebf02c2279628111cca
                       <td>{(i.unit_price * i.quantity).toLocaleString()} ฿</td>
                     </tr>
                   ))
                 ) : (
-<<<<<<< HEAD
                   <tr>
                     <td colSpan="4">ไม่มีข้อมูลอะไหล่</td>
                   </tr>
-=======
-                  <tr><td colSpan="4">ไม่มีข้อมูลอะไหล่</td></tr>
->>>>>>> d3480cde3ae02edeed9c4ebf02c2279628111cca
                 )}
               </tbody>
             </table>
 
-<<<<<<< HEAD
             {/* 💰 รวมยอดแยก */}
             {/* 💰 รวมยอดแยก */}
             <div className="total-box">
@@ -614,67 +500,17 @@ export default function UserRepairStatus() {
 
             {selectedBooking.slipfilename && (
               <div className="slip-preview">
-=======
-            {/* ✅ สรุปค่าใช้จ่าย */}
-            <div className="total-section">
-              <h4>💰 สรุปค่าใช้จ่าย</h4>
-              <p>ค่าอะไหล่: <b>{Number(bookingDetail.cost || 0).toLocaleString()} ฿</b></p>
-              <p>ค่าแรงช่าง: <b>{Number(bookingDetail.service || 0).toLocaleString()} ฿</b></p>
-              <p>ค่ารับ-ส่งรถ: <b>{Number(bookingDetail.freight || 0).toLocaleString()} ฿</b></p>
-              <hr />
-              <p style={{ fontSize: "16px" }}>
-                รวมทั้งหมด:{" "}
-                <b style={{ color: "#007bff" }}>
-                  {(
-                    Number(bookingDetail.cost || 0) +
-                    Number(bookingDetail.service || 0) +
-                    Number(bookingDetail.freight || 0)
-                  ).toLocaleString()} ฿
-                </b>
-              </p>
-            </div>
-
-            {/* ✅ QR PromptPay */}
-            {bookingDetail.status_id === 5 && (
-              <>
-                <div className="qr-section">
-                  <button className="btn btn-success" onClick={showQRCode}>
-                    📱 แสดง QR พร้อมยอด
-                  </button>
-                </div>
-
-                <form onSubmit={uploadSlip} className="slip-upload">
-                  <label>📎 แนบสลิปการชำระเงิน:</label>
-                  <input
-                    type="file"
-                    accept=".jpg,.jpeg,.png,.pdf"
-                    onChange={(e) => setSlipFile(e.target.files[0])}
-                  />
-                  <button className="btn btn-primary" type="submit">
-                    📤 อัปโหลด
-                  </button>
-                </form>
-              </>
-            )}
-
-            {/* ✅ แสดงสลิปถ้ามี */}
-            {bookingDetail.slipfilename && (
-              <div className="slip-preview">
-                <p>📄 สลิปที่แนบแล้ว:</p>
->>>>>>> d3480cde3ae02edeed9c4ebf02c2279628111cca
                 <img
-                  src={`http://localhost:3000/uploads/${bookingDetail.slipfilename}`}
+                  src={`http://localhost:3000/uploads/${selectedBooking.slipfilename}`}
                   alt="Slip"
-                  className="slip-img"
+                  className="slip-image"
                 />
               </div>
             )}
 
 <<<<<<< HEAD
             <footer className="popup-actions">
-              <button className="btn btn-secondary" onClick={closePopup}>
-                ปิด
-              </button>
+              <button className="btn btn-secondary" onClick={closePopup}>ปิด</button>
             </footer>
 =======
             <div className="popup-actions">
