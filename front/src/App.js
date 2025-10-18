@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Navbar from "./components/Navbar";
-import Home from "./pages/Home";
+
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -14,8 +14,7 @@ import MyVehicles from "./pages/MyVehicles";
 import BookService from "./pages/BookService";
 import PartsManager from "./pages/PartsManager";
 import AdminBookings from "./pages/AdminBookings";
-import AboutUs  from "./pages/about-us";
-import Contact from "./pages/contact";
+
 function AppRoutes() {
   const location = useLocation();
 
@@ -29,9 +28,6 @@ function AppRoutes() {
 
       <Routes>
         {/* Public */}
-        <Route path="/" element={<Home />} />
-        <Route path="/About-Us" element={<AboutUs />} />
-        <Route path="/Contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
