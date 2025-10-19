@@ -2,72 +2,53 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import Swal from "sweetalert2";
 import QRCode from "qrcode";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
+import "../font/Sarabun-Regular-normal.js";
 import "../styles/UserRepair.css";
 
 export default function UserRepairStatus() {
   const [bookings, setBookings] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [selectedBooking, setSelectedBooking] = useState(null);
-  const [bookingDetail, setBookingDetail] = useState(null);
   const [repairItems, setRepairItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [slipFile, setSlipFile] = useState(null);
+  const [previewURL, setPreviewURL] = useState(null); // ✅ preview slip ก่อนอัปโหลด
 
-  // 🔍 ฟิลเตอร์
+  // 🔍 ตัวกรอง
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
   useEffect(() => {
-    fetchMyBookings();
+    fetchBookings();
   }, []);
 
-  // ✅ โหลดงานซ่อมของผู้ใช้
-  const fetchMyBookings = async () => {
+  // ✅ โหลดข้อมูล booking ของผู้ใช้
+  const fetchBookings = async () => {
     try {
-      const data = await api("/api/bookings/mine");
-      if (data.success) {
-        const sorted = data.bookings.sort((a, b) => new Date(b.date) - new Date(a.date));
+      const res = await api("/api/bookings/mine");
+      if (res.success) {
+        const sorted = res.bookings.sort((a, b) => b.booking_id - a.booking_id);
         setBookings(sorted);
         setFiltered(sorted);
       }
     } catch {
-      Swal.fire("❌", "โหลดข้อมูลงานซ่อมไม่สำเร็จ", "error");
+      Swal.fire("❌", "โหลดข้อมูลไม่สำเร็จ", "error");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ ยกเลิกงานซ่อม
-  const cancelBooking = async () => {
-    const confirm = await Swal.fire({
-      title: "❌ ยืนยันการยกเลิกงานซ่อม?",
-      text: "หากยกเลิกแล้วจะไม่สามารถเรียกคืนได้",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "ยืนยัน",
-      cancelButtonText: "กลับ",
-    });
-
-    if (!confirm.isConfirmed) return;
-
+  // ✅ โหลดรายการอะไหล่ของ booking
+  const fetchRepairItems = async (bookingId) => {
     try {
-      const res = await api(`/api/bookings/${selectedBooking}/status`, {
-        method: "PUT",
-        body: { status_id: 4 },
-      });
-      if (res.success) {
-        Swal.fire("✅", "ยกเลิกงานซ่อมเรียบร้อยแล้ว", "success");
-        fetchMyBookings();
-        closePopup();
-      } else {
-        Swal.fire("❌", res.message || "ยกเลิกไม่สำเร็จ", "error");
-      }
+      const res = await api(`/api/repair-items/${bookingId}`);
+      if (res.success) setRepairItems(res.items || []);
     } catch {
-      Swal.fire("❌", "เกิดข้อผิดพลาดระหว่างการยกเลิก", "error");
+      setRepairItems([]);
     }
   };
 
@@ -80,6 +61,8 @@ export default function UserRepairStatus() {
         return { text: "🔧 กำลังซ่อม", class: "progress" };
       case 5:
         return { text: "💰 รอชำระ", class: "waiting" };
+      case 6:
+        return { text: "⌛ รอตรวจสอบสลิป", class: "review" };
       case 3:
         return { text: "✅ เสร็จแล้ว", class: "done" };
       case 4:
@@ -89,74 +72,70 @@ export default function UserRepairStatus() {
     }
   };
 
-  // ✅ สถานะ
-  const getStatus = (id) => {
-    switch (id) {
-      case 1: return { text: "⏳ รอช่าง", class: "pending" };
-      case 2: return { text: "🔧 กำลังซ่อม", class: "progress" };
-      case 3: return { text: "✅ เสร็จแล้ว", class: "done" };
-      case 4: return { text: "❌ ยกเลิกการจอง", class: "cancel" };
-      case 5: return { text: "💰 รอชำระเงิน", class: "waiting" };
-      default: return { text: "❔ ไม่ทราบ", class: "unknown" };
->>>>>>> d3480cde3ae02edeed9c4ebf02c2279628111cca
-    }
-  };
-
-  // ✅ เปิดรายละเอียด
-  const openPopup = async (booking_id) => {
-    setSelectedBooking(booking_id);
-    try {
-      const [repairRes, detailRes] = await Promise.all([
-        api(`/api/repair-items/${booking_id}`),
-        api(`/api/bookings/${booking_id}`)
-      ]);
-      if (repairRes.success) setRepairItems(repairRes.items || []);
-      if (detailRes.success) setBookingDetail(detailRes.booking);
-    } catch {
-      Swal.fire("❌", "โหลดรายละเอียดไม่สำเร็จ", "error");
-    }
+  // ✅ เปิด popup รายละเอียด
+  const openDetail = async (b) => {
+    setSelectedBooking(b);
+    setPreviewURL(null);
+    setSlipFile(null);
+    await fetchRepairItems(b.booking_id);
   };
 
   const closePopup = () => {
     setSelectedBooking(null);
     setRepairItems([]);
-    setBookingDetail(null);
-    setSlipFile(null);
   };
 
-<<<<<<< HEAD
   // ✅ อัปโหลดสลิป
   const uploadSlip = async (bookingId) => {
-    if (!slipFile) return Swal.fire("⚠️", "กรุณาเลือกไฟล์ก่อนอัปโหลด", "warning");
+    if (!slipFile)
+      return Swal.fire("⚠️", "กรุณาเลือกไฟล์ก่อนอัปโหลด", "warning");
+
     const formData = new FormData();
     formData.append("slip", slipFile);
 
-  try {
-    const res = await api(`/api/bookings/${bookingId}/slip`, {
-      method: "POST",
-      body: formData,
-    });
+    try {
+      const res = await api(`/api/bookings/${bookingId}/slip`, {
+        method: "POST",
+        body: formData,
+      });
 
-    if (res.success) {
-      Swal.fire("✅", "อัปโหลดสลิปสำเร็จ!", "success");
-      setSlipFile(null);
-      fetchBookings();
-      closePopup();
-    } else {
-      Swal.fire("❌", res.message || "อัปโหลดไม่สำเร็จ", "error");
+      if (res.success) {
+        Swal.fire({
+          icon: "success",
+          title: "✅ อัปโหลดสลิปสำเร็จ!",
+          text: "ระบบจะอัปเดตสถานะโดยอัตโนมัติ",
+          timer: 2000,
+          showConfirmButton: false,
+        });
+
+        setSlipFile(null);
+        setPreviewURL(null);
+        fetchBookings();
+        closePopup();
+      } else {
+        Swal.fire("❌", res.message || "อัปโหลดไม่สำเร็จ", "error");
+      }
+    } catch (err) {
+      console.error("❌ Upload slip error:", err);
+      Swal.fire("❌", "เกิดข้อผิดพลาดในการอัปโหลด", "error");
     }
-  } catch (err) {
-    console.error("Upload error:", err);
-    Swal.fire("❌", "เกิดข้อผิดพลาดในการอัปโหลด", "error");
-  }
-};
+  };
 
+  // ✅ Preview slip ก่อนอัปโหลด
+  const handleSlipSelect = (e) => {
+    const file = e.target.files[0];
+    setSlipFile(file);
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setPreviewURL(ev.target.result);
+      reader.readAsDataURL(file);
+    }
+  };
 
   // ✅ QR PromptPay Generator
   const generatePromptPayPayload = (mobileNumber, amount) => {
     const cleanNumber = mobileNumber.replace(/[^0-9]/g, "");
     const mobile = "66" + cleanNumber.substring(1);
-
     const idPayloadFormat = "00";
     const idPOI = "01";
     const idMerchantInfo = "29";
@@ -185,7 +164,6 @@ export default function UserRepairStatus() {
     payload += idTransactionAmount + len + amt;
     payload += idCountryCode + "02TH";
     payload += idCRC + "04";
-
     const crc = computeCRC16(payload);
     return payload + crc;
   };
@@ -204,7 +182,7 @@ export default function UserRepairStatus() {
 
   // ✅ แสดง QR Code
   const showQRCode = async () => {
-    const phoneNumber = "0612163450"; // 📱 พร้อมเพย์ร้าน
+    const phoneNumber = "0612163450"; // พร้อมเพย์ร้าน
     const freight = Number(selectedBooking.freight || 0);
     const service = Number(selectedBooking.service || 0);
     const partsTotal = repairItems.reduce(
@@ -228,11 +206,11 @@ export default function UserRepairStatus() {
         confirmButtonText: "ปิด",
       });
     } catch {
-      Swal.fire("❌", "เกิดข้อผิดพลาดในการอัปโหลด", "error");
+      Swal.fire("❌", "ไม่สามารถสร้าง QR Code ได้", "error");
     }
   };
 
-  // ✅ ฟิลเตอร์ค้นหา
+  // ✅ ฟิลเตอร์
   useEffect(() => {
     let data = bookings;
     if (searchTerm)
@@ -241,78 +219,26 @@ export default function UserRepairStatus() {
           b.license_plate?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           b.model?.toLowerCase().includes(searchTerm.toLowerCase())
       );
-    if (statusFilter !== "all") data = data.filter((b) => String(b.status_id) === String(statusFilter));
-    if (startDate) data = data.filter((b) => new Date(b.date) >= new Date(startDate));
-    if (endDate) data = data.filter((b) => new Date(b.date) <= new Date(endDate));
+    if (statusFilter !== "all")
+      data = data.filter((b) => String(b.status_id) === String(statusFilter));
+    if (startDate)
+      data = data.filter((b) => new Date(b.date) >= new Date(startDate));
+    if (endDate)
+      data = data.filter((b) => new Date(b.date) <= new Date(endDate));
     setFiltered(data);
   }, [searchTerm, statusFilter, startDate, endDate, bookings]);
 
-=======
-  const showQRCode = async () => {
-    try {
-      const phoneNumber = "0612163450";
-      const totalAmount =
-        Number(bookingDetail.cost || 0) +
-        Number(bookingDetail.service || 0) +
-        Number(bookingDetail.freight || 0);
-
-      const payload = generatePromptPayPayload(phoneNumber, totalAmount);
-      const qrImage = await QRCode.toDataURL(payload, { width: 250 });
-
-      Swal.fire({
-        title: "📱 สแกนเพื่อชำระเงิน",
-        html: `
-          <p>ยอดชำระทั้งหมด <b>${totalAmount.toLocaleString()} บาท</b></p>
-          <img src="${qrImage}" alt="QR Payment" style="width:230px; border-radius:10px; margin-top:10px;" />
-          <p style="margin-top:10px; font-weight:bold;">ชื่อบัญชี: ร้าน P&Q Garage Auto Repair</p>
-          <p>พร้อมเพย์: ${phoneNumber}</p>
-        `,
-        confirmButtonText: "ปิด",
-      });
-    } catch {
-      Swal.fire("❌", "สร้าง QR Code ไม่สำเร็จ", "error");
-    }
-  };
-
-  // ✅ Upload Slip
-  const uploadSlip = async (e) => {
-    e.preventDefault();
-    if (!slipFile) return Swal.fire("⚠️", "กรุณาเลือกไฟล์ก่อน", "info");
-
-    const formData = new FormData();
-    formData.append("slip", slipFile);
-
-    try {
-      const res = await fetch(`http://localhost:3000/api/bookings/${selectedBooking}/slip`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.success) {
-        Swal.fire("✅", "อัปโหลดสลิปสำเร็จ", "success");
-        fetchMyBookings();
-        openPopup(selectedBooking);
-      } else {
-        Swal.fire("❌", data.message || "อัปโหลดไม่สำเร็จ", "error");
-      }
-    } catch {
-      Swal.fire("❌", "ไม่สามารถอัปโหลดไฟล์ได้", "error");
-    }
-  };
-
->>>>>>> d3480cde3ae02edeed9c4ebf02c2279628111cca
   if (loading) return <div className="loading">⏳ กำลังโหลด...</div>;
 
   return (
     <div className="user-page">
-      <h1 className="user-title">🚗 งานซ่อมของฉัน</h1>
+      <h2 className="user-title">🔧 ติดตามสถานะงานซ่อม</h2>
 
-      {/* 🔍 Filter */}
+      {/* 🔍 ฟิลเตอร์ */}
       <div className="filter-bar">
         <input
           type="text"
-          placeholder="🔍 ค้นหา (ทะเบียน / รุ่น / รายละเอียด)"
+          placeholder="ค้นหา (ทะเบียน / รุ่น)"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -324,6 +250,7 @@ export default function UserRepairStatus() {
           <option value="1">รอช่าง</option>
           <option value="2">กำลังซ่อม</option>
           <option value="5">รอชำระ</option>
+          <option value="6">รอตรวจสอบสลิป</option>
           <option value="3">เสร็จแล้ว</option>
           <option value="4">ยกเลิก</option>
         </select>
@@ -339,16 +266,18 @@ export default function UserRepairStatus() {
         />
       </div>
 
-      {/* ตารางงาน */}
+      {/* ตาราง */}
       <table className="user-table">
         <thead>
-<<<<<<< HEAD
           <tr>
-            <th>#</th><th>วันที่</th><th>เวลา</th><th>รถ</th><th>สถานะ</th><th>ยอดรวม</th><th>จัดการ</th>
+            <th>#</th>
+            <th>วันที่</th>
+            <th>เวลา</th>
+            <th>รถ</th>
+            <th>สถานะ</th>
+            <th>ยอดรวม</th>
+            <th>จัดการ</th>
           </tr>
-=======
-          <tr><th>รหัส</th><th>วันที่</th><th>เวลา</th><th>รถ</th><th>รายละเอียด</th><th>สถานะ</th><th>จัดการ</th></tr>
->>>>>>> d3480cde3ae02edeed9c4ebf02c2279628111cca
         </thead>
         <tbody>
           {filtered.map((b) => {
@@ -380,13 +309,14 @@ export default function UserRepairStatus() {
       </table>
 
       {/* Popup รายละเอียด */}
-<<<<<<< HEAD
       {selectedBooking && (
         <div className="popup-overlay" onClick={closePopup}>
           <div className="popup-card" onClick={(e) => e.stopPropagation()}>
             <header className="popup-header">
               <h3>🧾 รายละเอียดงาน #{selectedBooking.booking_id}</h3>
-              <button className="btn-close" onClick={closePopup}>✖</button>
+              <button className="btn-close" onClick={closePopup}>
+                ✖
+              </button>
             </header>
 
             <p>
@@ -440,54 +370,72 @@ export default function UserRepairStatus() {
               </tbody>
             </table>
 
-            {/* 💰 รวมยอดแยก */}
-            {/* 💰 รวมยอดแยก */}
+            {/* 💰 รวมยอด */}
             <div className="total-box">
               <p>
                 ค่าอะไหล่:{" "}
                 {repairItems
-                  .reduce((sum, i) => sum + i.unit_price * i.quantity, 0)
+                  .reduce((s, i) => s + i.unit_price * i.quantity, 0)
                   .toLocaleString()}{" "}
                 ฿
               </p>
               <p>
-                ค่าบริการ (Service):{" "}
+                ค่าบริการ:{" "}
                 {Number(selectedBooking.service || 0).toLocaleString()} ฿
               </p>
               {selectedBooking.transport_required && (
                 <p>
-                  ค่าขนส่ง (Freight):{" "}
+                  ค่าขนส่ง:{" "}
                   {Number(selectedBooking.freight || 0).toLocaleString()} ฿
                 </p>
               )}
               <hr />
-              {/* รวมทั้งหมดแบบคำนวณสด */}
               <b>
                 รวมทั้งหมด:{" "}
                 {(
                   Number(selectedBooking.service || 0) +
                   Number(selectedBooking.freight || 0) +
-                  repairItems.reduce(
-                    (sum, i) => sum + i.unit_price * i.quantity,
-                    0
-                  )
+                  repairItems.reduce((s, i) => s + i.unit_price * i.quantity, 0)
                 ).toLocaleString()}{" "}
                 ฿
               </b>
             </div>
 
-            {/* 📸 สลิป + QR */}
+            {/* 📸 อัปโหลดสลิป */}
+            {/* 📸 อัปโหลดสลิป */}
             {selectedBooking.status_id === 5 && (
               <>
                 <button className="btn btn-qrcode" onClick={showQRCode}>
                   📱 แสดง QR พร้อมยอด
                 </button>
+
                 <div className="upload-section">
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setSlipFile(e.target.files[0])}
+                    onChange={(e) => {
+                      const file = e.target.files[0];
+                      setSlipFile(file);
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (ev) => setPreviewURL(ev.target.result);
+                        reader.readAsDataURL(file);
+                      }
+                    }}
                   />
+
+                  {/* ✅ แสดงรูปพอดี (Preview ก่อนอัปโหลด) */}
+                  {previewURL && (
+                    <div className="preview-box">
+                      <img
+                        src={previewURL}
+                        alt="preview"
+                        className="preview-image"
+                      />
+                      <p className="file-note">📄 {slipFile?.name}</p>
+                    </div>
+                  )}
+
                   <button
                     className="btn btn-upload"
                     onClick={() => uploadSlip(selectedBooking.booking_id)}
@@ -498,6 +446,7 @@ export default function UserRepairStatus() {
               </>
             )}
 
+            {/* ✅ แสดงสลิปจริงจาก backend */}
             {selectedBooking.slipfilename && (
               <div className="slip-preview">
                 <img
@@ -508,22 +457,11 @@ export default function UserRepairStatus() {
               </div>
             )}
 
-<<<<<<< HEAD
             <footer className="popup-actions">
-              <button className="btn btn-secondary" onClick={closePopup}>ปิด</button>
-            </footer>
-=======
-            <div className="popup-actions">
-              {bookingDetail.status_id === 1 && (
-                <button className="btn btn-cancel" onClick={cancelBooking}>
-                  ❌ ยกเลิกการซ่อม
-                </button>
-              )}
               <button className="btn btn-secondary" onClick={closePopup}>
                 ปิด
               </button>
-            </div>
->>>>>>> d3480cde3ae02edeed9c4ebf02c2279628111cca
+            </footer>
           </div>
         </div>
       )}
