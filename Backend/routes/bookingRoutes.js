@@ -54,5 +54,10 @@ router.get("/:id", verifyToken, BookingController.getById);
 router.post("/", verifyToken, BookingController.create);
 router.put("/:id", verifyToken, BookingController.update);
 router.delete("/:id", verifyToken, BookingController.delete);
+// router.put("/:id/cost", BookingController.updateCost);
+router.put("/:id/cost", verifyToken, BookingController.updateCost);
+
+// ✅ เพิ่ม route เปลี่ยนสถานะ
+router.put("/:id/status", verifyToken, BookingController.updateStatus);
 
 module.exports = router;

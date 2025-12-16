@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
+import "../styles/BookAppointmentPage.css"; // Import CSS
 
 export default function BookService() {
   const nav = useNavigate();
@@ -89,14 +90,11 @@ export default function BookService() {
   if (loading) return <div>⏳ กำลังโหลดข้อมูลรถ...</div>;
 
   return (
-    <div
-      className="page-container"
-      style={{ maxWidth: "600px", margin: "24px auto", padding: "0 16px" }}
-    >
+    <div className="page-container">
       <h1 className="page-title">📝 จองบริการ</h1>
 
-      <div className="card" style={{ padding: "16px" }}>
-        {error && <p style={{ color: "red" }}>{error}</p>}
+      <div className="card">
+        {error && <p style={{ color: "var(--danger)", marginBottom: "20px" }}>{error}</p>}
 
         <form onSubmit={submit}>
           {/* เลือกรถ */}
@@ -125,7 +123,7 @@ export default function BookService() {
             onChange={onChange}
             className="input"
             required
-            min={new Date().toISOString().split("T")[0]} // กันเลือกวันที่ย้อนหลัง
+            min={new Date().toISOString().split("T")[0]}
           />
 
           {/* เวลา */}
@@ -157,8 +155,10 @@ export default function BookService() {
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "6px",
-              marginTop: "12px",
+              gap: "10px",
+              marginTop: "20px",
+              cursor: "pointer",
+              color: "var(--text-primary)"
             }}
           >
             <input
@@ -171,11 +171,7 @@ export default function BookService() {
           </label>
 
           {/* Submit */}
-          <button
-            className="btn-primary"
-            type="submit"
-            style={{ marginTop: "16px" }}
-          >
+          <button className="btn-primary" type="submit">
             จองเลย
           </button>
         </form>

@@ -143,6 +143,7 @@ export default function VehicleStatsPage() {
                 data={statusStats}
                 dataKey="value"
                 nameKey="name"
+                innerRadius={60} // 👈 เพิ่มตรงนี้
                 outerRadius={100}
                 label
               >
@@ -155,6 +156,7 @@ export default function VehicleStatsPage() {
             </PieChart>
           </ResponsiveContainer>
         </div>
+
 
         <div className="chart-card">
           <h2>⚙️ สัดส่วนยี่ห้ออะไหล่</h2>

@@ -11,7 +11,7 @@ const generatePartId = async () => {
 const PartsController = {
   // GET all parts
   async getParts(req, res) {
-    try {300065
+    try {
 
       
       const result = await pool.query("SELECT * FROM parts ORDER BY part_id");
@@ -38,20 +38,35 @@ const PartsController = {
   },
 
   // CREATE new part
-  async createPart(req, res) {
-    const { name, marque, quantity, unit_price } = req.body;
-    try {
+  // CREATE new part (รองรับทั้ง 1 รายการ และหลายรายการ)
+async createPart(req, res) {
+  try {
+    const parts = Array.isArray(req.body.parts) ? req.body.parts : [req.body];
+
+    const insertedParts = [];
+
+    for (const part of parts) {
+      const { name, marque, quantity, unit_price } = part;
       const part_id = await generatePartId();
+
       const result = await pool.query(
         "INSERT INTO parts (part_id, name, marque, quantity, unit_price) VALUES ($1,$2,$3,$4,$5) RETURNING *",
         [part_id, name, marque, quantity, unit_price]
       );
-      res.status(201).json({ success: true, part: result.rows[0] });
-    } catch (err) {
-      console.error("Create part error:", err);
-      res.status(500).json({ success: false, message: "Internal server error" });
+
+      insertedParts.push(result.rows[0]);
     }
-  },
+
+    res.status(201).json({
+      success: true,
+      parts: insertedParts,
+    });
+  } catch (err) {
+    console.error("Create part error:", err);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+},
+
 
   // UPDATE part
   async updatePart(req, res) {

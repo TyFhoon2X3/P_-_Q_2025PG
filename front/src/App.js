@@ -4,6 +4,9 @@ import Navbar from "./components/Navbar";
 
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Home from "./pages/Home";
+import AboutUs from "./pages/about-us";
+import Contact from "./pages/contact";
 import AdminDashboard from "./pages/AdminDashboard";
 import UserDashboard from "./pages/UserDashboard";
 import AdminCustomers from "./pages/AdminCustomers";
@@ -14,6 +17,7 @@ import MyVehicles from "./pages/MyVehicles";
 import BookService from "./pages/BookService";
 import PartsManager from "./pages/PartsManager";
 import AdminBookings from "./pages/AdminBookings";
+import AdminMessages from "./pages/AdminMessages"; // Added
 
 function AppRoutes() {
   const location = useLocation();
@@ -28,6 +32,9 @@ function AppRoutes() {
 
       <Routes>
         {/* Public */}
+        <Route path="/" element={<Home />} />
+        <Route path="/about-us" element={<AboutUs />} />
+        <Route path="/contact" element={<Contact />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
@@ -69,6 +76,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={["r1"]}>
               <PartsManager />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/messages"
+          element={
+            <ProtectedRoute allowedRoles={["r1"]}>
+              <AdminMessages />
             </ProtectedRoute>
           }
         />

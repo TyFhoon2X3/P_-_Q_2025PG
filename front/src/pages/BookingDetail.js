@@ -38,7 +38,7 @@ export default function BookingDetail() {
                 <p><strong>วันที่:</strong> {new Date(booking.date).toLocaleDateString()}</p>
                 <p><strong>เวลา:</strong> {booking.time}</p>
                 <p><strong>รายละเอียด:</strong> {booking.description}</p>
-                <p><strong>ค่าซ่อม:</strong> {booking.cost} ฿</p>
+                <p><strong>ค่าซ่อม (อะไหล่):</strong> {Number(booking.parts_total || 0).toLocaleString()} ฿</p>
                 <p><strong>ค่าบริการ:</strong> {booking.service} ฿</p>
                 <p><strong>ค่าขนส่ง:</strong> {booking.freight} ฿</p>
                 <h3 style={{ marginTop: "12px", color: "green" }}>💰 รวมทั้งหมด: {booking.total_price} ฿</h3>
