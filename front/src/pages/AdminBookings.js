@@ -124,8 +124,13 @@ export default function AdminRepairManager() {
   // ✅ บันทึกค่าใช้จ่าย
   const updateCost = async (e) => {
     e.preventDefault();
-    const freight = selected.transport_required ? Number(e.target.freight?.value || 0) : 0;
-    const service = Number(e.target.service?.value || 0);
+    const freightInput = e.target.elements.freight;
+    const serviceInput = e.target.elements.service;
+
+    const freight = selected.transport_required ? Number(freightInput?.value || 0) : 0;
+    const service = Number(serviceInput?.value || 0);
+
+    console.log("Saving cost:", { freight, service, transport: selected.transport_required });
 
     const res = await api(`/api/bookings/${selected.booking_id}/cost`, {
       method: "PUT",
@@ -436,6 +441,22 @@ export default function AdminRepairManager() {
                 ).toLocaleString()} ฿</b></h4>
               </div>
             </section>
+
+            {/* ✅ แสดงสลิปโอนเงิน */}
+            {selected.slipfilename && (
+              <section className="popup-section slip" style={{ textAlign: "center", marginTop: "16px" }}>
+                <h4>📸 หลักฐานการโอนเงิน</h4>
+                <div className="slip-preview">
+                  <img
+                    src={`http://localhost:3000/uploads/${selected.slipfilename}`}
+                    alt="Slip Payment"
+                    style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: "8px", cursor: "pointer", border: "1px solid #ddd" }}
+                    onClick={() => window.open(`http://localhost:3000/uploads/${selected.slipfilename}`, "_blank")}
+                  />
+                  <p style={{ fontSize: "12px", color: "gray", marginTop: "4px" }}>คลิกที่รูปเพื่อดูภาพขนาดใหญ่</p>
+                </div>
+              </section>
+            )}
 
             <footer className="popup-actions">
               <button className="btn btn-print" onClick={printPDF}>🖨️ พิมพ์ใบซ่อม</button>

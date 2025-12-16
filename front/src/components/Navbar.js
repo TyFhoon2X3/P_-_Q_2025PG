@@ -4,14 +4,16 @@ import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { Bell } from "lucide-react"; // 🔔 ไอคอนแจ้งเตือน
+import { Bell, Menu, X } from "lucide-react"; // 🔔 ไอคอนแจ้งเตือน & เมนู
+
 
 export default function Navbar() {
   const nav = useNavigate();
-  const location = useLocation(); // ✅ ใช้ตรวจจับการเปลี่ยนหน้า
+  const location = useLocation();
   const [role, setRole] = useState(null);
   const [lowStock, setLowStock] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false); // ✅ State สำหรับเมนูมือถือ
 
   // ✅ โหลด role ทุกครั้งที่มีการเปลี่ยนหน้า
   useEffect(() => {
@@ -20,7 +22,8 @@ export default function Navbar() {
       setRole(storedRole);
     };
     updateRole();
-  }, [location]); // 👈 ทุกครั้งที่ route เปลี่ยน
+    setMenuOpen(false); // ปิดเมนูเมื่อเปลี่ยนหน้า
+  }, [location]);
 
   // ✅ ดึงข้อมูลอะไหล่ใกล้หมด (เฉพาะ Admin)
   useEffect(() => {
@@ -62,16 +65,17 @@ export default function Navbar() {
           <NavLink to="/admin/vehicles">รถของลูกค้า</NavLink>
           <NavLink to="/admin/bookings">บริการ</NavLink>
           <NavLink to="/admin/parts">อะไหล่</NavLink>
+          <NavLink to="/admin/messages">ข้อความ</NavLink>
         </>
       );
     }
     if (role === "r2") {
       return (
         <>
-          <NavLink to="/user-dashboard">แดชบอร์ด</NavLink>
+          <NavLink to="/user-dashboard">แดชบอร์ดลูกค้า</NavLink>
           <NavLink to="/my-vehicles">รถของฉัน</NavLink>
           <NavLink to="/book-service">จองบริการ</NavLink>
-          <NavLink to="/bookings">การจอง</NavLink>
+          <NavLink to="/bookings">ประวัติการจอง</NavLink>
         </>
       );
     }
@@ -94,17 +98,43 @@ export default function Navbar() {
   return (
     <nav className="nav">
       <div className="nav-inner">
-        <div className="brand">🚗 P & Q Garage</div>
+        <div className="nav-header">
+          <div className="brand">🚗 P & Q Garage</div>
 
-        <div className="nav-links">
+          {/* 📱 ปุ่มเมนูมือถือ */}
+          <button className="mobile-menu-btn" onClick={() => setMenuOpen(!menuOpen)}>
+            {menuOpen ? <X size={28} /> : <Menu size={28} />}
+          </button>
+        </div>
+
+        {/* 🔗 ลิงก์นำทาง (รองรับ Mobile) */}
+        <div className={`nav-links ${menuOpen ? "open" : ""}`}>
           <NavLink to="/">หน้าแรก</NavLink>
           <NavLink to="/about-us">เกี่ยวกับเรา</NavLink>
           <NavLink to="/contact">ติดต่อ</NavLink>
           {renderLinks()}
+
+          {/* 📱 ย้ายปุ่ม Login/Logout มาไว้ในเมนูสำหรับมือถือ */}
+          <div className="mobile-actions">
+            {role ? (
+              <button className="btn-outline mobile-btn" onClick={logout}>
+                ออกจากระบบ
+              </button>
+            ) : (
+              <>
+                <Link className="btn-outline mobile-btn" to="/login">
+                  เข้าสู่ระบบ
+                </Link>
+                <Link className="btn-outline mobile-btn" to="/register">
+                  สมัครสมาชิก
+                </Link>
+              </>
+            )}
+          </div>
         </div>
 
         <div className="nav-actions">
-          {/* 🔔 เฉพาะ Admin */}
+          {/* 🔔 เฉพาะ Admin (แสดงตลอด) */}
           {role === "r1" && (
             <div className="relative notification-container">
               <button
@@ -119,31 +149,43 @@ export default function Navbar() {
 
               {dropdownOpen && (
                 <div className="notification-dropdown">
-                  <div className="dropdown-header">⚠️ อะไหล่ใกล้หมด</div>
+                  <div className="dropdown-header">
+                    <span>การแจ้งเตือน</span>
+                    <span className="header-badge">{lowStock.length} ใหม่</span>
+                  </div>
+
                   {lowStock.length === 0 ? (
                     <div className="dropdown-empty">
-                      ✅ ไม่มีอะไหล่ใกล้หมด
+                      <div className="empty-icon">✅</div>
+                      <p>ไม่มีรายการพัสดุที่ต้องเติมสต็อก</p>
                     </div>
                   ) : (
-                    <ul>
+                    <div className="dropdown-list">
                       {lowStock.map((p) => (
-                        <li
+                        <div
                           key={p.part_id}
                           onClick={() => handlePartClick(p)}
                           className="dropdown-item"
                         >
-                          <span>{p.name}</span>
-                          <span className="qty">{p.quantity} ชิ้น</span>
-                        </li>
+                          <div className="item-icon-wrapper">⚠️</div>
+                          <div className="item-content">
+                            <span className="item-name">{p.name}</span>
+                            <span className="item-desc">
+                              แบรนด์ {p.marque} • <span className="text-danger">เหลือ {p.quantity} ชิ้น</span>
+                            </span>
+                          </div>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
                   )}
+
                   <div className="dropdown-footer">
                     <Link
                       to="/admin/parts"
                       onClick={() => setDropdownOpen(false)}
+                      className="view-all-link"
                     >
-                      ดูทั้งหมด →
+                      จัดการสต็อกอะไหล่
                     </Link>
                   </div>
                 </div>
@@ -151,21 +193,23 @@ export default function Navbar() {
             </div>
           )}
 
-          {/* 🔘 ปุ่ม Login/Logout */}
-          {role ? (
-            <button className="btn-outline" onClick={logout}>
-              ออกจากระบบ
-            </button>
-          ) : (
-            <>
-              <Link className="btn-outline" to="/login">
-                เข้าสู่ระบบ
-              </Link>
-              <Link className="btn-outline" to="/register">
-                สมัครสมาชิก
-              </Link>
-            </>
-          )}
+          {/* 🔘 ปุ่ม Login/Logout (Desktop Only) */}
+          <div className="desktop-actions">
+            {role ? (
+              <button className="btn-outline" onClick={logout}>
+                ออกจากระบบ
+              </button>
+            ) : (
+              <>
+                <Link className="btn-outline" to="/login">
+                  เข้าสู่ระบบ
+                </Link>
+                <Link className="btn-outline" to="/register">
+                  สมัครสมาชิก
+                </Link>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </nav>

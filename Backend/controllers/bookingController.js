@@ -14,7 +14,10 @@ const BookingController = {
         b.booking_id, b.date, b.time,
         b.status_id, s.status_name,   -- ✅ เพิ่มชื่อสถานะ
         b.description, b.transport_required,
-        COALESCE(b.cost,0)+COALESCE(b.service,0)+COALESCE(b.freight,0) AS total_price,
+        (SELECT COALESCE(SUM(ri.quantity * ri.unit_price), 0) FROM repair_items ri WHERE ri.booking_id = b.booking_id) AS parts_total,
+        COALESCE(b.service,0) AS service,
+        COALESCE(b.freight,0) AS freight,
+        ((SELECT COALESCE(SUM(ri.quantity * ri.unit_price), 0) FROM repair_items ri WHERE ri.booking_id = b.booking_id) + COALESCE(b.service,0) + COALESCE(b.freight,0)) AS total_price,
         b.slipfilename,
         v.license_plate, v.model,
         u.name AS owner_name
@@ -43,10 +46,10 @@ const BookingController = {
         b.booking_id, b.vehicle_id, b.date, b.time,
         b.status_id, s.status_name,        -- ✅ เพิ่มสถานะ
         b.description, b.transport_required, b.slipfilename,
-        COALESCE(b.cost,0) AS cost,
+        (SELECT COALESCE(SUM(ri.quantity * ri.unit_price), 0) FROM repair_items ri WHERE ri.booking_id = b.booking_id) AS parts_total,
         COALESCE(b.service,0) AS service,
         COALESCE(b.freight,0) AS freight,
-        (COALESCE(b.cost,0)+COALESCE(b.service,0)+COALESCE(b.freight,0)) AS total_price,
+        ((SELECT COALESCE(SUM(ri.quantity * ri.unit_price), 0) FROM repair_items ri WHERE ri.booking_id = b.booking_id) + COALESCE(b.service,0) + COALESCE(b.freight,0)) AS total_price,
         v.license_plate, v.model,
         u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone
       FROM bookings b
@@ -69,7 +72,12 @@ const BookingController = {
     try {
       const result = await pool.query(
         `SELECT 
-          b.*, v.license_plate, v.model, u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone
+          b.*, 
+          COALESCE(b.service,0) AS service,
+          COALESCE(b.freight,0) AS freight,
+          (SELECT COALESCE(SUM(ri.quantity * ri.unit_price), 0) FROM repair_items ri WHERE ri.booking_id = b.booking_id) AS parts_total,
+          ((SELECT COALESCE(SUM(ri.quantity * ri.unit_price), 0) FROM repair_items ri WHERE ri.booking_id = b.booking_id) + COALESCE(b.service,0) + COALESCE(b.freight,0)) AS total_price,
+          v.license_plate, v.model, u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone
          FROM bookings b
          JOIN vehicles v ON b.vehicle_id = v.vehicle_id
          JOIN users u ON v.user_id = u.user_id
@@ -164,6 +172,7 @@ const BookingController = {
   async updateCost(req, res) {
     const { id } = req.params;
     const { freight = 0, service = 0 } = req.body;
+    console.log(`[UpdateCost] ID: ${id}, Freight: ${freight}, Service: ${service}`);
 
     try {
       // ตรวจสอบว่ามี booking จริงไหม
@@ -202,7 +211,7 @@ const BookingController = {
       res.status(500).json({ success: false, message: "Server error" });
     }
   },
-  
+
 
 };
 

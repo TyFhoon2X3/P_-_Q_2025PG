@@ -11,7 +11,7 @@ const generatePartId = async () => {
 const PartsController = {
   // GET all parts
   async getParts(req, res) {
-    try {300065
+    try {
 
       
       const result = await pool.query("SELECT * FROM parts ORDER BY part_id");
