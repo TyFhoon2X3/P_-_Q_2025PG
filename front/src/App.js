@@ -18,6 +18,8 @@ import BookService from "./pages/BookService";
 import PartsManager from "./pages/PartsManager";
 import AdminBookings from "./pages/AdminBookings";
 import AdminMessages from "./pages/AdminMessages"; // Added
+import ProfileSettings from "./pages/ProfileSettings";
+import AdminReviews from "./pages/AdminReviews";
 
 function AppRoutes() {
   const location = useLocation();
@@ -87,6 +89,14 @@ function AppRoutes() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin/reviews"
+          element={
+            <ProtectedRoute allowedRoles={["r1"]}>
+              <AdminReviews />
+            </ProtectedRoute>
+          }
+        />
 
         {/* User only */}
         <Route
@@ -128,6 +138,14 @@ function AppRoutes() {
           element={
             <ProtectedRoute allowedRoles={["r1", "r2"]}>
               <BookingDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute allowedRoles={["r1", "r2"]}>
+              <ProfileSettings />
             </ProtectedRoute>
           }
         />

@@ -145,10 +145,10 @@ export default function BookService() {
                 <option value="">-- เลือกเวลา --</option>
                 {(() => {
                   const slots = [];
-                  for (let hour = 8; hour <= 18; hour++) {
+                  for (let hour = 8; hour <= 16; hour++) {
                     const hourStr = hour.toString().padStart(2, "0");
                     slots.push(`${hourStr}:00`);
-                    if (hour < 18) slots.push(`${hourStr}:30`);
+                    if (hour < 16) slots.push(`${hourStr}:30`);
                   }
                   return slots.map((slot) => (
                     <option key={slot} value={slot}>{slot} น.</option>

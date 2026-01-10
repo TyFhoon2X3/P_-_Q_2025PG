@@ -15,6 +15,7 @@ export default function UserRepairStatus() {
   const [loading, setLoading] = useState(true);
   const [slipFile, setSlipFile] = useState(null);
   const [previewURL, setPreviewURL] = useState(null); // ✅ preview slip ก่อนอัปโหลด
+  const [currentReview, setCurrentReview] = useState(null);
 
   // 🔍 ตัวกรอง
   const [searchTerm, setSearchTerm] = useState("");
@@ -42,7 +43,17 @@ export default function UserRepairStatus() {
     }
   };
 
-  // ✅ โหลดรายการอะไหล่ของ booking
+  // ✅ โหลดรีวิว
+  const fetchReview = async (id) => {
+    try {
+      const res = await api(`/api/reviews/booking/${id}`);
+      if (res.success) setCurrentReview(res.review);
+    } catch {
+      setCurrentReview(null);
+    }
+  };
+
+  // ✅ โหลดอะไหล่ของ booking
   const fetchRepairItems = async (bookingId) => {
     try {
       const res = await api(`/api/repair-items/${bookingId}`);
@@ -77,7 +88,8 @@ export default function UserRepairStatus() {
     setSelectedBooking(b);
     setPreviewURL(null);
     setSlipFile(null);
-    await fetchRepairItems(b.booking_id);
+    setCurrentReview(null);
+    await Promise.all([fetchRepairItems(b.booking_id), fetchReview(b.booking_id)]);
   };
 
   const closePopup = () => {
@@ -121,14 +133,50 @@ export default function UserRepairStatus() {
     }
   };
 
-  // ✅ Preview slip ก่อนอัปโหลด
-  const handleSlipSelect = (e) => {
-    const file = e.target.files[0];
-    setSlipFile(file);
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setPreviewURL(ev.target.result);
-      reader.readAsDataURL(file);
+  // ✅ ให้คะแนนบริการ
+  const handleRate = async () => {
+    const { value: formValues } = await Swal.fire({
+      title: '⭐ ให้คะแนนบริการ',
+      html:
+        '<select id="swal-rate" class="swal2-input">' +
+        '<option value="5">⭐⭐⭐⭐⭐ (5 - ดีเยี่ยม)</option>' +
+        '<option value="4">⭐⭐⭐⭐ (4 - ดีมาก)</option>' +
+        '<option value="3">⭐⭐⭐ (3 - ปานกลาง)</option>' +
+        '<option value="2">⭐⭐ (2 - พอใช้)</option>' +
+        '<option value="1">⭐ (1 - ต้องปรับปรุง)</option>' +
+        '</select>' +
+        '<textarea id="swal-comment" class="swal2-textarea" placeholder="เขียนความคิดเห็นของคุณ..."></textarea>',
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'ส่งรีวิว',
+      cancelButtonText: 'ยกเลิก',
+      preConfirm: () => {
+        return {
+          rating: document.getElementById('swal-rate').value,
+          comment: document.getElementById('swal-comment').value
+        }
+      }
+    });
+
+    if (formValues) {
+      try {
+        const res = await api('/api/reviews', {
+          method: 'POST',
+          body: {
+            booking_id: selectedBooking.booking_id,
+            rating: Number(formValues.rating),
+            comment: formValues.comment
+          }
+        });
+        if (res.success) {
+          Swal.fire('✅', 'ขอบคุณสำหรับคำแนะนำ!', 'success');
+          fetchReview(selectedBooking.booking_id);
+        } else {
+          Swal.fire('❌', res.message, 'error');
+        }
+      } catch (err) {
+        Swal.fire('❌', 'เกิดข้อผิดพลาด', 'error');
+      }
     }
   };
 
@@ -495,6 +543,34 @@ export default function UserRepairStatus() {
                   alt="Slip"
                   className="slip-image"
                 />
+              </div>
+            )}
+
+            {/* ⭐ รีวิว */}
+            {selectedBooking.status_id === 3 && (
+              <div className="review-section" style={{ marginTop: "24px", padding: "16px", background: "rgba(255,255,255,0.02)", borderRadius: "12px", border: "1px solid rgba(255,255,255,0.05)" }}>
+                <h4 style={{ marginBottom: "12px", display: "flex", alignItems: "center", gap: "8px" }}>
+                  ⭐ รีวิวและคะแนนความพึงพอใจ
+                </h4>
+                {currentReview ? (
+                  <div className="review-display">
+                    <div style={{ color: "#fbbf24", fontSize: "1.2rem", marginBottom: "4px" }}>
+                      {"⭐".repeat(currentReview.rating)}
+                    </div>
+                    <p style={{ color: "var(--text-secondary)", fontStyle: "italic" }}>
+                      "{currentReview.comment || "ไม่มีข้อความเพิ่มเติม"}"
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ textAlign: "center", padding: "12px" }}>
+                    <p style={{ color: "var(--text-muted)", marginBottom: "12px", fontSize: "0.9rem" }}>
+                      คุณยังไม่ได้ให้คะแนนงานซ่อมนี้
+                    </p>
+                    <button className="btn btn-primary" onClick={handleRate}>
+                      ⭐ ให้คะแนนตอนนี้
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 

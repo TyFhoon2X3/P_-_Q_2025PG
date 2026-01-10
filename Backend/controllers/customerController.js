@@ -109,6 +109,16 @@ const CustomerController = {
       res.status(500).json({ success: false, message: "Server error" });
     }
   },
+  // ✅ GET all staff (admins and potential staff roles)
+  async getStaff(req, res) {
+    try {
+      const result = await pool.query("SELECT user_id, name, email FROM users WHERE roleid = 'r1' ORDER BY name");
+      res.status(200).json({ success: true, staff: result.rows });
+    } catch (error) {
+      console.error("❌ Error fetching staff:", error.message);
+      res.status(500).json({ success: false, message: "Server error" });
+    }
+  },
 };
 
 module.exports = CustomerController;

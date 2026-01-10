@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import Swal from "sweetalert2";
 import Select from "react-select";
+import * as XLSX from "xlsx";
 
 export default function AdminVehiclesPage() {
   const [vehicles, setVehicles] = useState([]);
@@ -92,6 +93,51 @@ export default function AdminVehiclesPage() {
 
     return data;
   }, [vehicles, keyword, brandFilter, typeFilter]);
+
+  // 📊 ส่งออกข้อมูล
+  const exportToExcel = () => {
+    const data = filtered.map(v => ({
+      "ID": v.vehicle_id,
+      "ทะเบียน": v.license_plate,
+      "ยี่ห้อ": v.brandname,
+      "รุ่น": v.model,
+      "ประเภท": v.typename,
+      "เจ้าของ": v.owner_name,
+      "เบอร์โทร": v.owner_phone
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Vehicles");
+    XLSX.writeFile(workbook, `vehicles_export_${new Date().getTime()}.xlsx`);
+  };
+
+  const exportToCSV = () => {
+    try {
+      const fields = ["vehicle_id", "license_plate", "brandname", "model", "typename", "owner_name", "owner_phone"];
+      const headers = ["ID", "ทะเบียน", "ยี่ห้อ", "รุ่น", "ประเภท", "เจ้าของ", "เบอร์โทร"];
+
+      const csvRows = [];
+      csvRows.push(headers.join(","));
+
+      for (const row of filtered) {
+        const values = fields.map(field => {
+          let val = row[field] === null || row[field] === undefined ? "" : row[field];
+          const stringVal = String(val).replace(/"/g, '""');
+          return `"${stringVal}"`;
+        });
+        csvRows.push(values.join(","));
+      }
+
+      const csvString = csvRows.join("\n");
+      const blob = new Blob(["\uFEFF" + csvString], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute("download", `vehicles_export_${new Date().getTime()}.csv`);
+      link.click();
+    } catch (err) {
+      Swal.fire("❌", "ส่งออก CSV ไม่สำเร็จ", "error");
+    }
+  };
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -235,6 +281,10 @@ export default function AdminVehiclesPage() {
           <button className="btn-primary" style={{ width: "auto" }} onClick={openCreate}>
             + เพิ่มรถ
           </button>
+          <div style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
+            <button className="btn-outline" onClick={exportToExcel} style={{ borderColor: "#10b981", color: "#10b981" }}>📗 Excel</button>
+            <button className="btn-outline" onClick={exportToCSV} style={{ borderColor: "#6b7280", color: "#6b7280" }}>📄 CSV</button>
+          </div>
         </div>
 
         {/* Table */}

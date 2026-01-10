@@ -11,6 +11,7 @@ export default function UserDashboard() {
     history: 0,
   });
   const [recentActivity, setRecentActivity] = useState([]);
+  const [reminders, setReminders] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,15 +24,21 @@ export default function UserDashboard() {
       const headers = { Authorization: `Bearer ${token}` };
 
       // Parallel Fetching
-      const [profileRes, vehiclesRes, bookingsRes] = await Promise.all([
+      const [profileRes, vehiclesRes, bookingsRes, remindersRes] = await Promise.all([
         axios.get("http://localhost:3000/api/profile", { headers }),
         axios.get("http://localhost:3000/api/vehicles/mine", { headers }),
         axios.get("http://localhost:3000/api/bookings/mine", { headers }),
+        axios.get("http://localhost:3000/api/bookings/stats/reminders", { headers }),
       ]);
 
       // 1. Set User Profile
       if (profileRes.data.success) {
         setUser(profileRes.data.profile);
+      }
+
+      // 1.5 Set Reminders
+      if (remindersRes.data.success) {
+        setReminders(remindersRes.data.reminders || []);
       }
 
       // 2. Set Stats
@@ -122,6 +129,28 @@ export default function UserDashboard() {
 
       {/* Dashboard Grid */}
       <div className="dashboard-grid">
+        {/* Maintenance Reminders */}
+        {reminders.length > 0 && (
+          <div className="section-card reminder-section" style={{ gridColumn: "1 / -1", background: "rgba(250, 204, 21, 0.05)", borderColor: "rgba(250, 204, 21, 0.3)" }}>
+            <div className="section-header">
+              <h2>⚠️ คำแนะนำการเช็กระยะ</h2>
+            </div>
+            <div className="reminder-list" style={{ display: "grid", gap: "12px" }}>
+              {reminders.map(r => (
+                <div key={r.vehicle_id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px", background: "rgba(255,255,255,0.03)", borderRadius: "8px" }}>
+                  <div>
+                    <h4 style={{ color: "var(--accent-color)" }}>{r.brandname} {r.model} ({r.license_plate})</h4>
+                    <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)" }}>
+                      {r.last_service ? `รับบริการครั้งล่าสุดเมื่อ: ${new Date(r.last_service).toLocaleDateString("th-TH")}` : "ยังไม่เคยได้รับบริการ"}
+                    </p>
+                  </div>
+                  <Link to="/book-service" className="btn-primary" style={{ padding: "6px 16px", fontSize: "0.85rem" }}>จองเลย</Link>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Quick Actions */}
         <div className="section-card actions-section">
           <div className="section-header">

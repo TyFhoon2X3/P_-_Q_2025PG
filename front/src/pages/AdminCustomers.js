@@ -4,6 +4,7 @@ import "../styles/modal.css";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import Swal from "sweetalert2";
+import * as XLSX from "xlsx";
 
 export default function AdminCustomers() {
   const [customers, setCustomers] = useState([]);
@@ -82,6 +83,53 @@ export default function AdminCustomers() {
 
     return data;
   }, [customers, keyword, statusFilter]);
+
+  // 📊 สถิติการส่งออก
+  const exportToExcel = () => {
+    const data = filtered.map(c => ({
+      "ID": c.user_id,
+      "ชื่อ": c.name,
+      "อีเมล": c.email,
+      "เบอร์โทร": c.phone,
+      "Role": c.roleid === "r1" ? "Admin" : "Customer",
+      "สถานะ": c.reason ? "Banned" : "Normal"
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Customers");
+    XLSX.writeFile(workbook, `customers_export_${new Date().getTime()}.xlsx`);
+  };
+
+  const exportToCSV = () => {
+    try {
+      const fields = ["user_id", "name", "email", "phone", "roleid", "reason"];
+      const headers = ["ID", "ชื่อ", "อีเมล", "เบอร์โทร", "Role", "สถานะ"];
+
+      const csvRows = [];
+      csvRows.push(headers.join(","));
+
+      for (const row of filtered) {
+        const values = fields.map(field => {
+          let val = row[field];
+          if (field === "roleid") val = val === "r1" ? "Admin" : "Customer";
+          if (field === "reason") val = val ? "Banned" : "Normal";
+          if (val === null || val === undefined) val = "";
+          const stringVal = String(val).replace(/"/g, '""');
+          return `"${stringVal}"`;
+        });
+        csvRows.push(values.join(","));
+      }
+
+      const csvString = csvRows.join("\n");
+      const blob = new Blob(["\uFEFF" + csvString], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute("download", `customers_export_${new Date().getTime()}.csv`);
+      link.click();
+    } catch (err) {
+      Swal.fire("❌", "ส่งออก CSV ไม่สำเร็จ", "error");
+    }
+  };
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -241,6 +289,10 @@ export default function AdminCustomers() {
             {loading ? "กำลังโหลด..." : "รีเฟรช"}
           </button>
           <button className="btn-primary" onClick={openCreate}>+ เพิ่มลูกค้า</button>
+          <div style={{ display: "flex", gap: "8px", marginLeft: "auto" }}>
+            <button className="btn-outline" onClick={exportToExcel} style={{ borderColor: "#10b981", color: "#10b981" }}>📗 Excel</button>
+            <button className="btn-outline" onClick={exportToCSV} style={{ borderColor: "#6b7280", color: "#6b7280" }}>📄 CSV</button>
+          </div>
         </div>
 
         {/* Table */}

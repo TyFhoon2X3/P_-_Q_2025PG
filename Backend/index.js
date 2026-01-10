@@ -65,6 +65,7 @@ app.use("/api/profile", profileRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/repair-items", repairItemRoutes);
+app.use("/api/reviews", require("./routes/reviewRoutes"));
 app.use("/api/contact", require("./routes/contactRoutes"));
 
 // ====================================

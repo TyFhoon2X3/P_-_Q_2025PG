@@ -51,11 +51,13 @@ const BookingController = {
         COALESCE(b.freight,0) AS freight,
         ((SELECT COALESCE(SUM(ri.quantity * ri.unit_price), 0) FROM repair_items ri WHERE ri.booking_id = b.booking_id) + COALESCE(b.service,0) + COALESCE(b.freight,0)) AS total_price,
         v.license_plate, v.model,
-        u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone
+        u.name AS owner_name, u.email AS owner_email, u.phone AS owner_phone,
+        b.technician_id, t.name AS technician_name
       FROM bookings b
       JOIN vehicles v ON b.vehicle_id = v.vehicle_id
       JOIN users u ON v.user_id = u.user_id
       LEFT JOIN statuses s ON s.status_id = b.status_id  -- ✅ JOIN ตาราง statuses
+      LEFT JOIN users t ON b.technician_id = t.user_id   -- ✅ JOIN ตาราง users เพื่อเอาชื่อช่าง
       ORDER BY b.date DESC, b.time DESC;
     `);
 
@@ -114,7 +116,7 @@ const BookingController = {
   // ✅ อัปเดตสถานะ
   async update(req, res) {
     const { id } = req.params;
-    const { status_id, description, service, freight } = req.body;
+    const { status_id, description, service, freight, technician_id } = req.body;
     try {
       const current = await pool.query(`SELECT * FROM bookings WHERE booking_id=$1`, [id]);
       if (!current.rowCount)
@@ -125,12 +127,13 @@ const BookingController = {
       const newDesc = description ?? old.description;
       const newService = service ?? old.service ?? 0;
       const newFreight = freight ?? old.freight ?? 0;
+      const newTech = technician_id ?? old.technician_id;
 
       const result = await pool.query(
         `UPDATE bookings 
-         SET status_id=$1, description=$2, service=$3, freight=$4 
-         WHERE booking_id=$5 RETURNING *`,
-        [newStatus, newDesc, newService, newFreight, id]
+           SET status_id=$1, description=$2, service=$3, freight=$4, technician_id=$5 
+           WHERE booking_id=$6 RETURNING *`,
+        [newStatus, newDesc, newService, newFreight, newTech, id]
       );
       res.json({ success: true, booking: result.rows[0] });
     } catch (err) {
@@ -212,7 +215,52 @@ const BookingController = {
     }
   },
 
+  // ✅ ดึงสถิติรายได้ (Admin)
+  async getRevenueStats(req, res) {
+    try {
+      const result = await pool.query(`
+        SELECT 
+          TO_CHAR(b.date, 'YYYY-MM-DD') as date,
+          SUM(COALESCE(b.service, 0) + COALESCE(b.freight, 0) + COALESCE((
+            SELECT SUM(ri.quantity * ri.unit_price) 
+            FROM repair_items ri 
+            WHERE ri.booking_id = b.booking_id
+          ), 0)) as total_revenue,
+          COUNT(b.booking_id) as job_count
+        FROM bookings b
+        WHERE b.status_id = 3
+        GROUP BY date
+        ORDER BY date ASC
+      `);
+      res.json({ success: true, stats: result.rows });
+    } catch (err) {
+      console.error("Get revenue stats error:", err.message);
+      res.status(500).json({ success: false, message: "Server error" });
+    }
+  },
 
+  // ✅ ดึงการแจ้งเตือนเช็กระยะ (User)
+  async getReminders(req, res) {
+    try {
+      const userId = req.user?.user_id;
+      if (!userId) return res.status(401).json({ success: false, message: "Unauthorized" });
+
+      const result = await pool.query(`
+        SELECT v.vehicle_id, v.license_plate, v.model, v.brandname,
+               MAX(b.date) as last_service
+        FROM vehicles v
+        LEFT JOIN bookings b ON v.vehicle_id = b.vehicle_id AND b.status_id = 3
+        WHERE v.user_id = $1
+        GROUP BY v.vehicle_id, v.brandname
+        HAVING MAX(b.date) IS NULL OR MAX(b.date) < NOW() - INTERVAL '6 months'
+      `, [userId]);
+
+      res.json({ success: true, reminders: result.rows });
+    } catch (err) {
+      console.error("Get reminders error:", err.message);
+      res.status(500).json({ success: false, message: "Server error" });
+    }
+  },
 };
 
 module.exports = BookingController;

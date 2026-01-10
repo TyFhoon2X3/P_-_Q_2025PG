@@ -49,6 +49,8 @@ router.post("/:id/slip", verifyToken, upload.single("slip"), async (req, res) =>
 
 // ✅ routes ปกติ
 router.get("/mine", verifyToken, BookingController.getMine);
+router.get("/stats/revenue", verifyToken, BookingController.getRevenueStats);
+router.get("/stats/reminders", verifyToken, BookingController.getReminders);
 router.get("/", verifyToken, BookingController.getAll);
 router.get("/:id", verifyToken, BookingController.getById);
 router.post("/", verifyToken, BookingController.create);

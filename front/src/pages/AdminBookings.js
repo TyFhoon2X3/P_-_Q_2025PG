@@ -3,6 +3,7 @@ import { api } from "../api";
 import Swal from "sweetalert2";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import * as XLSX from "xlsx";
 import "../font/Sarabun-Regular-normal.js";
 import "../font/Sarabun-ExtraBold-normal.js";
 import "../styles/AdminRepairManager.css";
@@ -18,6 +19,7 @@ export default function AdminRepairManager() {
   const [status, setStatus] = useState("all");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [staff, setStaff] = useState([]);
 
   // 🧮 Pagination
   const [page, setPage] = useState(1);
@@ -26,7 +28,17 @@ export default function AdminRepairManager() {
 
   useEffect(() => {
     fetchBookings();
+    fetchStaff();
   }, []);
+
+  const fetchStaff = async () => {
+    try {
+      const res = await api("/api/customers/staff");
+      if (res.success) setStaff(res.staff || []);
+    } catch {
+      console.error("Failed to fetch staff");
+    }
+  };
 
   // ✅ โหลดรายการงานซ่อมทั้งหมด
   const fetchBookings = async () => {
@@ -172,6 +184,21 @@ export default function AdminRepairManager() {
     }
   };
 
+  // ✅ เปลี่ยนพนักงาน (ช่าง)
+  const updateTechnician = async (techId) => {
+    const res = await api(`/api/bookings/${selected.booking_id}`, {
+      method: "PUT",
+      body: { technician_id: techId ? Number(techId) : null },
+    });
+    if (res.success) {
+      Swal.fire("✅", "มอบหมายช่างสำเร็จ", "success");
+      fetchBookings();
+      setSelected({ ...selected, technician_id: techId ? Number(techId) : null });
+    } else {
+      Swal.fire("❌", res.message || "มอบหมายไม่สำเร็จ", "error");
+    }
+  };
+
   // ✅ พิมพ์ PDF
   // ✅ พิมพ์ PDF แบบใหม่ (มีช่องลายเซ็น)
   // ✅ พิมพ์ PDF (ใบสรุปงานซ่อมเวอร์ชันสมบูรณ์)
@@ -301,6 +328,65 @@ export default function AdminRepairManager() {
     setPage(1); // Reset page when filtering
   }, [search, status, startDate, endDate, bookings]);
 
+  // 📊 ส่งออก Excel
+  const exportToExcel = () => {
+    const data = filtered.map(b => ({
+      "ID": b.booking_id,
+      "วันที่": new Date(b.date).toLocaleDateString("th-TH"),
+      "เวลา": b.time,
+      "ลูกค้า": b.owner_name,
+      "ทะเบียนระ": b.license_plate,
+      "รุ่น": b.model,
+      "รายละเอียด": b.description,
+      "สถานะ": getStatus(b.status_id).text,
+      "ค่าอะไหล่": b.parts_total,
+      "ค่าบริการ": b.service,
+      "ค่าส่ง": b.freight,
+      "รวมสุทธิ": b.total_price
+    }));
+    const worksheet = XLSX.utils.json_to_sheet(data);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Bookings");
+    XLSX.writeFile(workbook, `bookings_export_${new Date().getTime()}.xlsx`);
+  };
+
+  // 📄 ส่งออก CSV
+  const exportToCSV = () => {
+    try {
+      const fields = [
+        "booking_id", "date", "time", "owner_name", "license_plate", "model",
+        "description", "status_id", "parts_total", "service", "freight", "total_price"
+      ];
+      const headers = ["ID", "วันที่", "เวลา", "ลูกค้า", "ทะเบียน", "รุ่น", "รายละเอียด", "สถานะ", "ค่าอะไหล่", "ค่าบริการ", "ค่าส่ง", "รวมสุทธิ"];
+
+      const csvRows = [];
+      csvRows.push(headers.join(","));
+
+      for (const row of filtered) {
+        const values = fields.map(field => {
+          let val = row[field];
+          if (field === "status_id") val = getStatus(row.status_id).text;
+          if (val === null || val === undefined) val = "";
+          const stringVal = String(val).replace(/"/g, '""');
+          return `"${stringVal}"`;
+        });
+        csvRows.push(values.join(","));
+      }
+
+      const csvString = csvRows.join("\n");
+      const blob = new Blob(["\uFEFF" + csvString], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.setAttribute("download", `bookings_export_${new Date().getTime()}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      console.error(err);
+      Swal.fire("❌", "ส่งออก CSV ไม่สำเร็จ", "error");
+    }
+  };
+
   if (loading) return <div className="loading">⏳ กำลังโหลด...</div>;
 
   const startIndex = (page - 1) * rowsPerPage;
@@ -335,6 +421,10 @@ export default function AdminRepairManager() {
           value={endDate}
           onChange={(e) => setEndDate(e.target.value)}
         />
+        <div className="export-btns" style={{ display: "flex", gap: "8px" }}>
+          <button className="btn btn-detail" onClick={exportToExcel} style={{ background: "#10b981" }}>📗 Excel</button>
+          <button className="btn btn-detail" onClick={exportToCSV} style={{ background: "#6b7280" }}>📄 CSV</button>
+        </div>
       </div>
 
       <table className="user-table">
@@ -379,15 +469,32 @@ export default function AdminRepairManager() {
                 <div><b>รถ:</b> {selected.model} ({selected.license_plate})</div>
                 <div><b>สถานะ:</b> <span className={`status-badge ${getStatus(selected.status_id).class}`}>{getStatus(selected.status_id).text}</span></div>
               </div>
-              <div className="status-select">
-                <label>เปลี่ยนสถานะ:</label>
-                <select defaultValue={selected.status_id} onChange={(e) => updateStatus(e.target.value)}>
-                  <option value="1">⏳ รอช่าง</option>
-                  <option value="2">🔧 กำลังซ่อม</option>
-                  <option value="5">💰 รอชำระ</option>
-                  <option value="3">✅ เสร็จแล้ว</option>
-                  <option value="4">❌ ยกเลิก</option>
-                </select>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "16px" }}>
+                <div className="status-select">
+                  <label>เปลี่ยนสถานะ:</label>
+                  <select
+                    value={selected.status_id}
+                    onChange={(e) => updateStatus(e.target.value)}
+                  >
+                    <option value="1">⏳ รอช่าง</option>
+                    <option value="2">🔧 กำลังซ่อม</option>
+                    <option value="5">💰 รอชำระ</option>
+                    <option value="3">✅ เสร็จแล้ว</option>
+                    <option value="4">❌ ยกเลิก</option>
+                  </select>
+                </div>
+                <div className="status-select">
+                  <label>ช่างผู้ดูแล:</label>
+                  <select
+                    value={selected.technician_id || ""}
+                    onChange={(e) => updateTechnician(e.target.value)}
+                  >
+                    <option value="">-- ยังไม่ได้มอบหมาย --</option>
+                    {staff.map(s => (
+                      <option key={s.user_id} value={s.user_id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
             </section>
 
@@ -487,8 +594,9 @@ export default function AdminRepairManager() {
               <button className="btn btn-secondary" onClick={closePopup}>ปิด</button>
             </footer>
           </div>
-        </div>
-      )}
-    </div>
+        </div >
+      )
+      }
+    </div >
   );
 }

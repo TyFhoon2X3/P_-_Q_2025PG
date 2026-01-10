@@ -22,6 +22,8 @@ export default function VehicleStatsPage() {
   const [typeStats, setTypeStats] = useState([]);
   const [parts, setParts] = useState([]);
   const [statusStats, setStatusStats] = useState([]);
+  const [revenueStats, setRevenueStats] = useState([]);
+  const [totalRevenue, setTotalRevenue] = useState(0);
   const token = localStorage.getItem("token");
 
   useEffect(() => {
@@ -73,6 +75,15 @@ export default function VehicleStatsPage() {
         setStatusStats(mapped);
       }
     });
+
+    // 💰 สถิติรายได้
+    axios.get("http://localhost:3000/api/bookings/stats/revenue", { headers }).then((res) => {
+      if (res.data.success) {
+        setRevenueStats(res.data.stats);
+        const total = res.data.stats.reduce((acc, curr) => acc + Number(curr.total_revenue), 0);
+        setTotalRevenue(total);
+      }
+    });
   }, [token]);
 
   // 🔧 กราฟจำนวนอะไหล่
@@ -103,6 +114,10 @@ export default function VehicleStatsPage() {
             <p style={{ color: s.color }}>{s.value}</p>
           </div>
         ))}
+        <div className="info-card" style={{ background: "rgba(16, 185, 129, 0.1)", borderColor: "#10b981" }}>
+          <h3 style={{ color: "#10b981" }}>💰 รายได้ทั้งหมด</h3>
+          <p style={{ color: "#10b981" }}>{totalRevenue.toLocaleString()} ฿</p>
+        </div>
       </div>
 
       {/* ✅ Charts */}
@@ -178,7 +193,31 @@ export default function VehicleStatsPage() {
             </LineChart>
           </ResponsiveContainer>
         </div>
+
+        <div className="chart-card" style={{ gridColumn: "1 / -1" }}>
+          <h2>💰 รายได้รายวัน (Daily Revenue)</h2>
+          <ResponsiveContainer width="100%" height={350}>
+            <LineChart data={revenueStats}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.05)" />
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip
+                formatter={(value) => [`${Number(value).toLocaleString()} ฿`, "รายได้"]}
+              />
+              <Legend />
+              <Line
+                type="monotone"
+                dataKey="total_revenue"
+                name="รายได้ (฿)"
+                stroke="#10b981"
+                strokeWidth={4}
+                dot={{ r: 6, fill: "#10b981", strokeWidth: 2, stroke: "#fff" }}
+                activeDot={{ r: 8 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
       </div>
-    </div>
+    </div >
   );
 }

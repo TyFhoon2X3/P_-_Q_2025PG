@@ -3,10 +3,9 @@ import "../styles/common.css";
 import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
-import Swal from "sweetalert2";
 import {
   Bell, Menu, X, ChevronDown, User, LogOut,
-  LayoutDashboard, Users, Car, Wrench, Package, MessageSquare
+  LayoutDashboard, Users, Car, Wrench, Package, MessageSquare, Settings
 } from "lucide-react";
 
 export default function Navbar() {
@@ -81,6 +80,7 @@ export default function Navbar() {
     { to: "/admin/bookings", label: "จัดการบริการ", icon: <Wrench size={16} /> },
     { to: "/admin/parts", label: "คลังอะไหล่", icon: <Package size={16} /> },
     { to: "/admin/messages", label: "กล่องข้อความ", icon: <MessageSquare size={16} /> },
+    { to: "/admin/reviews", label: "รีวิวจากลูกค้า", icon: <Settings size={16} /> },
   ];
 
   return (
@@ -179,6 +179,9 @@ export default function Navbar() {
                 </button>
                 {userOpen && (
                   <div className="user-dropdown">
+                    <button className="dropdown-item" onClick={() => { nav("/profile"); setUserOpen(false); }}>
+                      <Settings size={16} /> ตั้งค่าบัญชี
+                    </button>
                     <button className="logout-item" onClick={logout}>
                       <LogOut size={16} /> ออกจากระบบ
                     </button>
