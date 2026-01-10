@@ -13,6 +13,8 @@ export default function AdminVehiclesPage() {
   const [users, setUsers] = useState([]);
 
   const [keyword, setKeyword] = useState("");
+  const [brandFilter, setBrandFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
   const [loading, setLoading] = useState(false);
 
   // pagination
@@ -66,14 +68,30 @@ export default function AdminVehiclesPage() {
 
   // filter
   const filtered = useMemo(() => {
+    let data = vehicles;
+
+    // Search keyword
     const q = keyword.trim().toLowerCase();
-    if (!q) return vehicles;
-    return vehicles.filter((v) =>
-      [v.license_plate, v.model, v.brandname, v.typename, v.owner_name]
-        .filter(Boolean)
-        .some((f) => String(f).toLowerCase().includes(q))
-    );
-  }, [vehicles, keyword]);
+    if (q) {
+      data = data.filter((v) =>
+        [v.license_plate, v.model, v.brandname, v.typename, v.owner_name]
+          .filter(Boolean)
+          .some((f) => String(f).toLowerCase().includes(q))
+      );
+    }
+
+    // Brand filter
+    if (brandFilter) {
+      data = data.filter((v) => String(v.id_brand) === String(brandFilter));
+    }
+
+    // Type filter
+    if (typeFilter) {
+      data = data.filter((v) => String(v.id_type) === String(typeFilter));
+    }
+
+    return data;
+  }, [vehicles, keyword, brandFilter, typeFilter]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -177,8 +195,40 @@ export default function AdminVehiclesPage() {
               setKeyword(e.target.value);
               setPage(1);
             }}
-            style={{ maxWidth: 420 }}
+            style={{ maxWidth: 300 }}
           />
+          <select
+            className="input"
+            value={brandFilter}
+            onChange={(e) => {
+              setBrandFilter(e.target.value);
+              setPage(1);
+            }}
+            style={{ maxWidth: 180 }}
+          >
+            <option value="">ทุกยี่ห้อ</option>
+            {brands.map((b) => (
+              <option key={b.id_brand} value={b.id_brand}>
+                {b.brandname}
+              </option>
+            ))}
+          </select>
+          <select
+            className="input"
+            value={typeFilter}
+            onChange={(e) => {
+              setTypeFilter(e.target.value);
+              setPage(1);
+            }}
+            style={{ maxWidth: 180 }}
+          >
+            <option value="">ทุกประเภท</option>
+            {types.map((t) => (
+              <option key={t.id_type} value={t.id_type}>
+                {t.typename}
+              </option>
+            ))}
+          </select>
           <button className="btn-outline" onClick={fetchVehicles} disabled={loading}>
             {loading ? "กำลังโหลด..." : "รีเฟรช"}
           </button>
@@ -277,7 +327,7 @@ export default function AdminVehiclesPage() {
                 placeholder="ค้นหาผู้ใช้..."
                 isClearable
               />
-            
+
 
               <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
                 <button className="btn-primary" type="submit" style={{ width: "auto" }}>บันทึก</button>
