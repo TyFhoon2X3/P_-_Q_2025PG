@@ -4,35 +4,51 @@ import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Swal from "sweetalert2";
-import { Bell, Menu, X } from "lucide-react"; // 🔔 ไอคอนแจ้งเตือน & เมนู
-
+import {
+  Bell, Menu, X, ChevronDown, User, LogOut,
+  LayoutDashboard, Users, Car, Wrench, Package, MessageSquare
+} from "lucide-react";
 
 export default function Navbar() {
   const nav = useNavigate();
   const location = useLocation();
   const [role, setRole] = useState(null);
+  const [userName, setUserName] = useState(null);
   const [lowStock, setLowStock] = useState([]);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false); // ✅ State สำหรับเมนูมือถือ
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [manageOpen, setManageOpen] = useState(false);
+  const [userOpen, setUserOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  // ✅ โหลด role ทุกครั้งที่มีการเปลี่ยนหน้า
   useEffect(() => {
-    const updateRole = () => {
-      const storedRole = localStorage.getItem("role");
-      setRole(storedRole);
+    const updateAuth = () => {
+      setRole(localStorage.getItem("role"));
+      setUserName(localStorage.getItem("name"));
     };
-    updateRole();
-    setMenuOpen(false); // ปิดเมนูเมื่อเปลี่ยนหน้า
+    updateAuth();
+    setMenuOpen(false);
   }, [location]);
 
-  // ✅ ดึงข้อมูลอะไหล่ใกล้หมด (เฉพาะ Admin)
   useEffect(() => {
     if (role === "r1") {
       fetchLowStock();
-      const interval = setInterval(fetchLowStock, 60000); // ทุก 1 นาที
+      const interval = setInterval(fetchLowStock, 60000);
       return () => clearInterval(interval);
     }
   }, [role]);
+
+  // ✅ Click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest(".nav-dropdown-container")) {
+        setNotifOpen(false);
+        setManageOpen(false);
+        setUserOpen(false);
+      }
+    };
+    window.addEventListener("click", handleClickOutside);
+    return () => window.removeEventListener("click", handleClickOutside);
+  }, []);
 
   const fetchLowStock = async () => {
     const token = localStorage.getItem("token");
@@ -52,162 +68,128 @@ export default function Navbar() {
   const logout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
+    localStorage.removeItem("name");
     setRole(null);
+    setUserName(null);
     nav("/login");
   };
 
-  const renderLinks = () => {
-    if (role === "r1") {
-      return (
-        <>
-          <NavLink to="/admin-dashboard">แดชบอร์ด</NavLink>
-          <NavLink to="/admin/customers">ลูกค้า</NavLink>
-          <NavLink to="/admin/vehicles">รถของลูกค้า</NavLink>
-          <NavLink to="/admin/bookings">บริการ</NavLink>
-          <NavLink to="/admin/parts">อะไหล่</NavLink>
-          <NavLink to="/admin/messages">ข้อความ</NavLink>
-        </>
-      );
-    }
-    if (role === "r2") {
-      return (
-        <>
-          <NavLink to="/user-dashboard">แดชบอร์ด</NavLink>
-          <NavLink to="/my-vehicles">รถของฉัน</NavLink>
-          <NavLink to="/book-service">จองบริการ</NavLink>
-          <NavLink to="/bookings">ประวัติการจอง</NavLink>
-        </>
-      );
-    }
-    return null;
-  };
-
-  const handlePartClick = (part) => {
-    Swal.fire({
-      title: part.name,
-      icon: "info",
-      html: `
-        <p><b>แบรนด์:</b> ${part.marque}</p>
-        <p><b>จำนวนคงเหลือ:</b> ${part.quantity}</p>
-        <p><b>ราคา:</b> ${part.unit_price} ฿</p>
-      `,
-      confirmButtonText: "ตกลง",
-    });
-  };
+  const manageLinks = [
+    { to: "/admin-dashboard", label: "แผงควบคุม", icon: <LayoutDashboard size={16} /> },
+    { to: "/admin/customers", label: "ข้อมูลลูกค้า", icon: <Users size={16} /> },
+    { to: "/admin/vehicles", label: "รถของลูกค้า", icon: <Car size={16} /> },
+    { to: "/admin/bookings", label: "จัดการบริการ", icon: <Wrench size={16} /> },
+    { to: "/admin/parts", label: "คลังอะไหล่", icon: <Package size={16} /> },
+    { to: "/admin/messages", label: "กล่องข้อความ", icon: <MessageSquare size={16} /> },
+  ];
 
   return (
     <nav className="nav">
       <div className="nav-inner">
         <div className="nav-header">
-          <div className="brand">🚗 P & Q Garage</div>
-
-          {/* 📱 ปุ่มเมนูมือถือ */}
+          <Link to="/" className="brand">🚗 P & Q Garage</Link>
           <button className="mobile-menu-btn" onClick={() => setMenuOpen(!menuOpen)}>
             {menuOpen ? <X size={28} /> : <Menu size={28} />}
           </button>
         </div>
 
-        {/* 🔗 ลิงก์นำทาง (รองรับ Mobile) */}
-        <div className={`nav-links ${menuOpen ? "open" : ""}`}>
-          <NavLink to="/">หน้าแรก</NavLink>
-          <NavLink to="/about-us">เกี่ยวกับเรา</NavLink>
-          <NavLink to="/contact">ติดต่อ</NavLink>
-          {renderLinks()}
+        <ul className={`nav-links ${menuOpen ? "open" : ""}`}>
+          <li><NavLink to="/">หน้าแรก</NavLink></li>
+          <li><NavLink to="/about-us">เกี่ยวกับเรา</NavLink></li>
+          <li><NavLink to="/contact">ติดต่อ</NavLink></li>
 
-          {/* 📱 ย้ายปุ่ม Login/Logout มาไว้ในเมนูสำหรับมือถือ */}
-          <div className="mobile-actions">
-            {role ? (
-              <button className="btn-outline mobile-btn" onClick={logout}>
-                ออกจากระบบ
+          {role === "r1" && (
+            <li className="nav-dropdown-container">
+              <button
+                className={`nav-dropdown-trigger ${manageOpen ? "active" : ""}`}
+                onClick={(e) => { e.stopPropagation(); setManageOpen(!manageOpen); setNotifOpen(false); setUserOpen(false); }}
+              >
+                จัดการระบบ <ChevronDown size={14} className={manageOpen ? "rotate" : ""} />
               </button>
+              {manageOpen && (
+                <div className="nav-dropdown">
+                  {manageLinks.map((link) => (
+                    <NavLink key={link.to} to={link.to} onClick={() => setManageOpen(false)}>
+                      {link.icon} {link.label}
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </li>
+          )}
+
+          {role === "r2" && (
+            <>
+              <li><NavLink to="/user-dashboard">แดชบอร์ด</NavLink></li>
+              <li><NavLink to="/my-vehicles">รถของฉัน</NavLink></li>
+              <li><NavLink to="/book-service">จองบริการ</NavLink></li>
+              <li><NavLink to="/bookings">การจอง</NavLink></li>
+            </>
+          )}
+
+          <li className="mobile-only">
+            {role ? (
+              <button className="logout-btn-mobile" onClick={logout}>ออกจากระบบ</button>
             ) : (
-              <>
-                <Link className="btn-outline mobile-btn" to="/login">
-                  เข้าสู่ระบบ
-                </Link>
-                <Link className="btn-outline mobile-btn" to="/register">
-                  สมัครสมาชิก
-                </Link>
-              </>
+              <div className="mobile-auth-btns">
+                <Link to="/login" className="btn-primary">เข้าสู่ระบบ</Link>
+                <Link to="/register" className="btn-outline">สมัครสมาชิก</Link>
+              </div>
             )}
-          </div>
-        </div>
+          </li>
+        </ul>
 
         <div className="nav-actions">
-          {/* 🔔 เฉพาะ Admin (แสดงตลอด) */}
           {role === "r1" && (
-            <div className="relative notification-container">
-              <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="notification-btn"
-              >
-                <Bell size={22} />
-                {lowStock.length > 0 && (
-                  <span className="badge">{lowStock.length}</span>
-                )}
+            <div className="nav-dropdown-container">
+              <button className="notification-btn" onClick={(e) => { e.stopPropagation(); setNotifOpen(!notifOpen); setManageOpen(false); setUserOpen(false); }}>
+                <Bell size={20} />
+                {lowStock.length > 0 && <span className="badge">{lowStock.length}</span>}
               </button>
-
-              {dropdownOpen && (
+              {notifOpen && (
                 <div className="notification-dropdown">
-                  <div className="dropdown-header">
-                    <span>การแจ้งเตือน</span>
-                    <span className="header-badge">{lowStock.length} ใหม่</span>
-                  </div>
-
-                  {lowStock.length === 0 ? (
-                    <div className="dropdown-empty">
-                      <div className="empty-icon">✅</div>
-                      <p>ไม่มีรายการพัสดุที่ต้องเติมสต็อก</p>
-                    </div>
-                  ) : (
-                    <div className="dropdown-list">
-                      {lowStock.map((p) => (
-                        <div
-                          key={p.part_id}
-                          onClick={() => handlePartClick(p)}
-                          className="dropdown-item"
-                        >
-                          <div className="item-icon-wrapper">⚠️</div>
-                          <div className="item-content">
-                            <span className="item-name">{p.name}</span>
-                            <span className="item-desc">
-                              แบรนด์ {p.marque} • <span className="text-danger">เหลือ {p.quantity} ชิ้น</span>
-                            </span>
-                          </div>
+                  <div className="dropdown-header">การแจ้งเตือน <span>{lowStock.length}</span></div>
+                  <div className="dropdown-list">
+                    {lowStock.length === 0 ? (
+                      <p className="p-4 text-center text-muted">ไม่มีแจ้งเตือนสต็อก</p>
+                    ) : (
+                      lowStock.map(p => (
+                        <div key={p.part_id} className="dropdown-item" onClick={() => { setNotifOpen(false); nav("/admin/parts"); }}>
+                          <span className="text-accent">⚠️ {p.name}</span>
+                          <span className="text-xs text-muted">เหลือเพียง {p.quantity} ชิ้น</span>
                         </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="dropdown-footer">
-                    <Link
-                      to="/admin/parts"
-                      onClick={() => setDropdownOpen(false)}
-                      className="view-all-link"
-                    >
-                      จัดการสต็อกอะไหล่
-                    </Link>
+                      ))
+                    )}
                   </div>
+                  <Link to="/admin/parts" className="dropdown-footer" onClick={() => setNotifOpen(false)}>ดูสต็อกอะไหล่</Link>
                 </div>
               )}
             </div>
           )}
 
-          {/* 🔘 ปุ่ม Login/Logout (Desktop Only) */}
-          <div className="desktop-actions">
+          <div className="desktop-auth nav-dropdown-container">
             {role ? (
-              <button className="btn-outline" onClick={logout}>
-                ออกจากระบบ
-              </button>
-            ) : (
               <>
-                <Link className="btn-outline" to="/login">
-                  เข้าสู่ระบบ
-                </Link>
-                <Link className="btn-outline" to="/register">
-                  สมัครสมาชิก
-                </Link>
+                <button className="user-profile-btn" onClick={(e) => { e.stopPropagation(); setUserOpen(!userOpen); setNotifOpen(false); setManageOpen(false); }}>
+                  <div className="avatar">
+                    <User size={20} />
+                  </div>
+                  <span>{userName || (role === "r1" ? "ผู้ดูแลระบบ" : "ลูกค้า")}</span>
+                  <ChevronDown size={14} className={userOpen ? "rotate" : ""} />
+                </button>
+                {userOpen && (
+                  <div className="user-dropdown">
+                    <button className="logout-item" onClick={logout}>
+                      <LogOut size={16} /> ออกจากระบบ
+                    </button>
+                  </div>
+                )}
               </>
+            ) : (
+              <div className="auth-btns">
+                <Link to="/login" className="btn-link">เข้าสู่ระบบ</Link>
+                <Link to="/register" className="btn-primary">เริ่มต้นใช้งาน</Link>
+              </div>
             )}
           </div>
         </div>

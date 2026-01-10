@@ -4,6 +4,9 @@ const cors = require("cors");
 const dotenv = require("dotenv");
 const path = require("path");
 
+// Load .env at the very beginning
+dotenv.config();
+
 // Controllers
 const { register } = require("./controllers/registerController");
 const { login } = require("./controllers/authController");
@@ -19,9 +22,6 @@ const profileRoutes = require("./routes/profile");
 const bookingRoutes = require("./routes/bookingRoutes");
 const vehicleRoutes = require("./routes/vehicleRoutes");
 const repairItemRoutes = require("./routes/repairItemRoutes");
-
-// Load .env
-dotenv.config();
 
 const app = express();
 

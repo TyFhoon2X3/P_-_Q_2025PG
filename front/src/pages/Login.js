@@ -36,9 +36,10 @@ export default function Login() {
         return;
       }
 
-      // ✅ เก็บ token และ role
+      // ✅ เก็บ token, role และ name
       localStorage.setItem("token", data.token);
       localStorage.setItem("role", data.user.roleid);
+      localStorage.setItem("name", data.user.name);
 
       Swal.fire({
         icon: "success",

@@ -16,6 +16,8 @@ export default function AdminRepairManager() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   // 🧮 Pagination
   const [page, setPage] = useState(1);
@@ -95,6 +97,15 @@ export default function AdminRepairManager() {
 
     const part = parts.find((p) => p.part_id === part_id);
     if (!part) return Swal.fire("⚠️", "ไม่พบข้อมูลอะไหล่", "warning");
+
+    // ✅ ตรวจสอบสต็อกเบื้องต้นที่ฝั่ง Client
+    if (qty > part.quantity) {
+      return Swal.fire({
+        icon: "error",
+        title: "สต็อกไม่เพียงพอ",
+        text: `อะไหล่ชิ้นนี้เหลือเพียง ${part.quantity} ชิ้นในคลัง`,
+      });
+    }
 
     const res = await api("/api/repair-items", {
       method: "POST",
@@ -284,8 +295,11 @@ export default function AdminRepairManager() {
           b.owner_name?.toLowerCase().includes(search.toLowerCase())
       );
     if (status !== "all") data = data.filter((b) => String(b.status_id) === String(status));
+    if (startDate) data = data.filter((b) => new Date(b.date) >= new Date(startDate));
+    if (endDate) data = data.filter((b) => new Date(b.date) <= new Date(endDate));
     setFiltered(data);
-  }, [search, status, bookings]);
+    setPage(1); // Reset page when filtering
+  }, [search, status, startDate, endDate, bookings]);
 
   if (loading) return <div className="loading">⏳ กำลังโหลด...</div>;
 
@@ -311,6 +325,16 @@ export default function AdminRepairManager() {
           <option value="3">เสร็จแล้ว</option>
           <option value="4">ยกเลิก</option>
         </select>
+        <input
+          type="date"
+          value={startDate}
+          onChange={(e) => setStartDate(e.target.value)}
+        />
+        <input
+          type="date"
+          value={endDate}
+          onChange={(e) => setEndDate(e.target.value)}
+        />
       </div>
 
       <table className="user-table">
@@ -401,7 +425,7 @@ export default function AdminRepairManager() {
                   <datalist id="parts-list">
                     {parts.map((p) => (
                       <option key={p.part_id} value={p.part_id}>
-                        {p.name} ({p.marque}) — {p.unit_price}฿
+                        {p.name} ({p.marque}) — {p.unit_price}฿ [คงเหลือ: {p.quantity}]
                       </option>
                     ))}
                   </datalist>

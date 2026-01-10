@@ -1,0 +1,15 @@
+Table: role
+Columns: ["roleid","rolename"]
+---
+Table: vehicle_brands
+Columns: ["id_brand","brandname"]
+---
+Table: vehicle_types
+Columns: ["id_type","typename"]
+---
+Table: users
+Columns: ["user_id","name","email","password","phone","roleid","address","reason","blacklisted_date"]
+---
+Table: parts
+Columns: ["part_id","name","marque","quantity","unit_price"]
+---

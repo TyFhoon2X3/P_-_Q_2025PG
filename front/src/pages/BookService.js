@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { api } from "../api";
 import { useNavigate } from "react-router-dom";
 import Swal from "sweetalert2";
-import "../styles/BookAppointmentPage.css"; // Import CSS
+import { Calendar, Clock, Car, FileText, CheckCircle } from "lucide-react";
+import "../styles/BookAppointmentPage.css";
 
 export default function BookService() {
   const nav = useNavigate();
@@ -17,14 +18,10 @@ export default function BookService() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ✅ โหลดเฉพาะรถของ user ที่ login
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      Swal.fire({
-        title: "กรุณาเข้าสู่ระบบ",
-        icon: "warning",
-      });
+      Swal.fire({ title: "กรุณาเข้าสู่ระบบ", icon: "warning" });
       nav("/login");
       return;
     }
@@ -65,10 +62,9 @@ export default function BookService() {
         title: "✅ จองสำเร็จ",
         text: "ระบบได้บันทึกการจองของคุณแล้ว",
         icon: "success",
-        confirmButtonText: "ตกลง",
+        confirmButtonColor: "var(--accent-color)",
       });
 
-      // reset form
       setForm({
         vehicle_id: "",
         date: "",
@@ -87,18 +83,28 @@ export default function BookService() {
     }
   };
 
-  if (loading) return <div>⏳ กำลังโหลดข้อมูลรถ...</div>;
+  if (loading) return (
+    <div className="page-container text-center py-20">
+      <div className="animate-spin text-accent mb-4">⏳</div>
+      <p>กำลังโหลดข้อมูลรถ...</p>
+    </div>
+  );
 
   return (
     <div className="page-container">
-      <h1 className="page-title">📝 จองบริการ</h1>
+      <div className="booking-header">
+        <div className="icon-hero">
+          <Calendar size={32} />
+        </div>
+        <h1 className="page-title">จองบริการซ่อม</h1>
+        <p className="page-subtitle">เลือกวันและเวลาที่คุณสะดวกเพื่อเข้ารับบริการ</p>
+      </div>
 
       <div className="card">
-        {error && <p style={{ color: "var(--danger)", marginBottom: "20px" }}>{error}</p>}
+        {error && <p className="text-danger mb-4">{error}</p>}
 
         <form onSubmit={submit}>
-          {/* เลือกรถ */}
-          <div className="label">เลือกรถ</div>
+          <div className="label"><Car size={16} /> เลือกรถของคุณ</div>
           <select
             name="vehicle_id"
             value={form.vehicle_id}
@@ -106,7 +112,7 @@ export default function BookService() {
             className="input"
             required
           >
-            <option value="">-- เลือกรถ --</option>
+            <option value="">-- กรุณาเลือกรถ --</option>
             {vehicles.map((v) => (
               <option key={v.vehicle_id} value={v.vehicle_id}>
                 {v.brandname} {v.model} ({v.license_plate})
@@ -114,65 +120,67 @@ export default function BookService() {
             ))}
           </select>
 
-          {/* วันที่ */}
-          <div className="label">วันที่</div>
-          <input
-            type="date"
-            name="date"
-            value={form.date}
-            onChange={onChange}
-            className="input"
-            required
-            min={new Date().toISOString().split("T")[0]}
-          />
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "20px" }}>
+            <div>
+              <div className="label"><Calendar size={16} /> วันที่เข้ารับบริการ</div>
+              <input
+                type="date"
+                name="date"
+                value={form.date}
+                onChange={onChange}
+                className="input"
+                required
+                min={new Date().toISOString().split("T")[0]}
+              />
+            </div>
+            <div>
+              <div className="label"><Clock size={16} /> เวลา</div>
+              <select
+                name="time"
+                value={form.time}
+                onChange={onChange}
+                className="input"
+                required
+              >
+                <option value="">-- เลือกเวลา --</option>
+                {(() => {
+                  const slots = [];
+                  for (let hour = 8; hour <= 18; hour++) {
+                    const hourStr = hour.toString().padStart(2, "0");
+                    slots.push(`${hourStr}:00`);
+                    if (hour < 18) slots.push(`${hourStr}:30`);
+                  }
+                  return slots.map((slot) => (
+                    <option key={slot} value={slot}>{slot} น.</option>
+                  ));
+                })()}
+              </select>
+            </div>
+          </div>
 
-          {/* เวลา */}
-          <div className="label">เวลา</div>
-          <input
-            type="time"
-            name="time"
-            value={form.time}
-            onChange={onChange}
-            className="input"
-            required
-            min="08:00"
-            max="18:00"
-          />
-
-          {/* รายละเอียด */}
-          <div className="label">รายละเอียดการซ่อม</div>
+          <div className="label"><FileText size={16} /> รายละเอียดการซ่อม / อาการเบื้องต้น</div>
           <textarea
             name="description"
             value={form.description}
             onChange={onChange}
             className="input"
-            rows="3"
+            rows="4"
+            placeholder="โปรดระบุรายละเอียดปัญหาของรถคุณ..."
             required
           />
 
-          {/* Checkbox รับรถ */}
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              marginTop: "20px",
-              cursor: "pointer",
-              color: "var(--text-primary)"
-            }}
-          >
+          <label className="checkbox-container">
             <input
               type="checkbox"
               name="transport_required"
               checked={form.transport_required}
               onChange={onChange}
             />
-            ต้องการให้ทางร้านรับรถถึงที่
+            <span>ต้องการให้ทางร้านรับรถถึงที่ (บริการพิเศษ)</span>
           </label>
 
-          {/* Submit */}
-          <button className="btn-primary" type="submit">
-            จองเลย
+          <button className="btn-primary" type="submit" style={{ marginTop: "32px" }}>
+            ยืนยันการจองบริการ
           </button>
         </form>
       </div>

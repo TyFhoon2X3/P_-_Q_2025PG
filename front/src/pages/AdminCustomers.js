@@ -8,6 +8,7 @@ import Swal from "sweetalert2";
 export default function AdminCustomers() {
   const [customers, setCustomers] = useState([]);
   const [keyword, setKeyword] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [loading, setLoading] = useState(false);
 
   // pagination
@@ -29,6 +30,9 @@ export default function AdminCustomers() {
   const [banTarget, setBanTarget] = useState(null);
   const [banReason, setBanReason] = useState("");
 
+  // menu state
+  const [activeMenu, setActiveMenu] = useState(null);
+
   // ดึงข้อมูลลูกค้า
   const fetchCustomers = async () => {
     setLoading(true);
@@ -46,16 +50,38 @@ export default function AdminCustomers() {
     fetchCustomers();
   }, []);
 
+  // ✅ ปิดเมนูเมื่อคลิกข้างนอก
+  useEffect(() => {
+    const closeMenu = () => setActiveMenu(null);
+    if (activeMenu) {
+      window.addEventListener("click", closeMenu);
+    }
+    return () => window.removeEventListener("click", closeMenu);
+  }, [activeMenu]);
+
   // ✅ ฟิลเตอร์ค้นหา
   const filtered = useMemo(() => {
+    let data = customers;
+
+    // Search keyword
     const q = keyword.trim().toLowerCase();
-    if (!q) return customers;
-    return customers.filter((c) =>
-      [c.name, c.email, c.phone, c.address, c.reason]
-        .filter(Boolean)
-        .some((f) => String(f).toLowerCase().includes(q))
-    );
-  }, [customers, keyword]);
+    if (q) {
+      data = data.filter((c) =>
+        [c.name, c.email, c.phone, c.address, c.reason]
+          .filter(Boolean)
+          .some((f) => String(f).toLowerCase().includes(q))
+      );
+    }
+
+    // Status filter
+    if (statusFilter === "banned") {
+      data = data.filter((c) => c.reason);
+    } else if (statusFilter === "normal") {
+      data = data.filter((c) => !c.reason);
+    }
+
+    return data;
+  }, [customers, keyword, statusFilter]);
 
   const totalPages = Math.ceil(filtered.length / pageSize);
   const paginated = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -196,8 +222,21 @@ export default function AdminCustomers() {
               setKeyword(e.target.value);
               setPage(1);
             }}
-            style={{ maxWidth: 420 }}
+            style={{ maxWidth: 300 }}
           />
+          <select
+            className="input"
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(e.target.value);
+              setPage(1);
+            }}
+            style={{ maxWidth: 160 }}
+          >
+            <option value="all">ทุกสถานะ</option>
+            <option value="normal">ปกติ (Active)</option>
+            <option value="banned">ถูกแบน (Banned)</option>
+          </select>
           <button className="btn-outline" onClick={fetchCustomers} disabled={loading}>
             {loading ? "กำลังโหลด..." : "รีเฟรช"}
           </button>
@@ -244,29 +283,103 @@ export default function AdminCustomers() {
                     </td>
                     <td>{c.blacklisted_date ? new Date(c.blacklisted_date).toLocaleDateString() : "-"}</td>
                     <td>{c.reason || "-"}</td>
-                    <td>
-                      <button className="btn-outline" onClick={() => openEdit(c)} style={{ marginRight: 6 }}>
-                        แก้ไข
+                    <td style={{ position: "relative", overflow: "visible" }}>
+                      <button
+                        className="btn-outline"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveMenu(activeMenu === c.user_id ? null : c.user_id);
+                        }}
+                        style={{ padding: "6px 12px", fontSize: "13px" }}
+                      >
+                        ⚙️ จัดการ
                       </button>
-                      <button className="btn-outline" onClick={() => onDelete(c)} style={{ marginRight: 6 }}>
-                        ลบ
-                      </button>
-                      {c.reason ? (
-                        <button
-                          className="btn-outline"
-                          style={{ color: "#16a34a", borderColor: "#16a34a" }}
-                          onClick={() => unban(c)}
+
+                      {activeMenu === c.user_id && (
+                        <div
+                          className="action-dropdown"
+                          style={{
+                            position: "absolute",
+                            right: 0,
+                            top: "calc(100% + 5px)",
+                            background: "#1e293b",
+                            border: "1px solid #334155",
+                            borderRadius: 10,
+                            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.5)",
+                            zIndex: 100,
+                            minWidth: 160,
+                            overflow: "hidden",
+                            animation: "fadeIn 0.2s ease-out",
+                          }}
                         >
-                          ปลดแบน
-                        </button>
-                      ) : (
-                        <button
-                          className="btn-outline"
-                          style={{ color: "#dc2626", borderColor: "#dc2626" }}
-                          onClick={() => openBan(c)}
-                        >
-                          แบน
-                        </button>
+                          <button
+                            className="dropdown-item"
+                            onClick={() => openEdit(c)}
+                            style={{
+                              width: "100%",
+                              padding: "10px 14px",
+                              textAlign: "left",
+                              background: "none",
+                              border: "none",
+                              color: "var(--text-primary)",
+                              cursor: "pointer",
+                              fontSize: 14,
+                            }}
+                          >
+                            ✏️ แก้ไข
+                          </button>
+                          <button
+                            className="dropdown-item"
+                            onClick={() => onDelete(c)}
+                            style={{
+                              width: "100%",
+                              padding: "10px 14px",
+                              textAlign: "left",
+                              background: "none",
+                              border: "none",
+                              color: "var(--text-primary)",
+                              cursor: "pointer",
+                              fontSize: 14,
+                            }}
+                          >
+                            🗑️ ลบ
+                          </button>
+                          {c.reason ? (
+                            <button
+                              className="dropdown-item"
+                              onClick={() => unban(c)}
+                              style={{
+                                width: "100%",
+                                padding: "10px 14px",
+                                textAlign: "left",
+                                background: "none",
+                                border: "none",
+                                color: "#16a34a",
+                                cursor: "pointer",
+                                fontSize: 14,
+                              }}
+                            >
+                              🔓 ปลดแบน
+                            </button>
+                          ) : (
+                            <button
+                              className="dropdown-item"
+                              onClick={() => openBan(c)}
+                              style={{
+                                width: "100%",
+                                padding: "10px 14px",
+                                textAlign: "left",
+                                background: "none",
+                                border: "none",
+                                color: "#dc2626",
+                                cursor: "pointer",
+                                fontSize: 14,
+                              }}
+                            >
+                              🚫 แบน
+                            </button>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>

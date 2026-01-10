@@ -313,92 +313,133 @@ export default function UserRepairStatus() {
         <div className="popup-overlay" onClick={closePopup}>
           <div className="popup-card" onClick={(e) => e.stopPropagation()}>
             <header className="popup-header">
-              <h3>🧾 รายละเอียดงาน #{selectedBooking.booking_id}</h3>
+              <h3>
+                <span style={{ fontSize: "1.4rem" }}>🧾</span> รายละเอียดงาน #{selectedBooking.booking_id}
+              </h3>
               <button className="btn-close" onClick={closePopup}>
                 ✖
               </button>
             </header>
 
-            <p>
-              <b>รถ:</b> {selectedBooking.model} (
-              {selectedBooking.license_plate})
-            </p>
-            <p>
-              <b>วันที่:</b>{" "}
-              {new Date(selectedBooking.date).toLocaleDateString("th-TH")}{" "}
-              {selectedBooking.time}
-            </p>
-            <p>
-              <b>รายละเอียด:</b> {selectedBooking.description || "-"}
-            </p>
-            <p>
-              <b>สถานะ:</b>{" "}
-              <span
-                className={`status-badge ${
-                  getStatus(selectedBooking.status_id).class
-                }`}
-              >
-                {getStatus(selectedBooking.status_id).text}
-              </span>
-            </p>
+            <div className="info-grid">
+              <div className="info-item">
+                <span className="info-label">🚗 รถที่เข้ารับบริการ</span>
+                <div className="info-value">
+                  {selectedBooking.brandname} {selectedBooking.model}
+                  <span style={{ color: "var(--accent-color)", marginLeft: "8px" }}>
+                    ({selectedBooking.license_plate})
+                  </span>
+                </div>
+              </div>
+              <div className="info-item">
+                <span className="info-label">📅 วันที่นัดหมาย</span>
+                <div className="info-value">
+                  {new Date(selectedBooking.date).toLocaleDateString("th-TH", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </div>
+              </div>
+              <div className="info-item">
+                <span className="info-label">🕒 เวลา</span>
+                <div className="info-value">
+                  {selectedBooking.time?.split(":").slice(0, 2).join(":")} น.
+                </div>
+              </div>
+              <div className="info-item">
+                <span className="info-label">🚩 สถานะปัจจุบัน</span>
+                <div className="info-value">
+                  <span
+                    className={`status-badge ${getStatus(selectedBooking.status_id).class
+                      }`}
+                  >
+                    {getStatus(selectedBooking.status_id).text}
+                  </span>
+                </div>
+              </div>
+            </div>
 
-            <h4>🧩 รายการอะไหล่</h4>
-            <table className="small-table">
-              <thead>
-                <tr>
-                  <th>ชื่ออะไหล่</th>
-                  <th>จำนวน</th>
-                  <th>ราคา/หน่วย</th>
-                  <th>รวม</th>
-                </tr>
-              </thead>
-              <tbody>
-                {repairItems.length > 0 ? (
-                  repairItems.map((i) => (
-                    <tr key={i.part_id}>
-                      <td>{i.partname}</td>
-                      <td>{i.quantity}</td>
-                      <td>{i.unit_price.toLocaleString()} ฿</td>
-                      <td>{(i.unit_price * i.quantity).toLocaleString()} ฿</td>
+            <div className="description-box">
+              <span className="info-label">📝 รายละเอียด/อาการ</span>
+              <p>{selectedBooking.description || "ไม่มีข้อมูลรายละเอียด"}</p>
+            </div>
+
+            <div className="parts-section">
+              <h4>🛠 รายการอะไหล่และค่าแรง</h4>
+              <div className="table-responsive">
+                <table className="small-table">
+                  <thead>
+                    <tr>
+                      <th>ลำดับ</th>
+                      <th>รายการอะไหล่</th>
+                      <th style={{ textAlign: "center" }}>จำนวน</th>
+                      <th style={{ textAlign: "right" }}>ราคา/หน่วย</th>
+                      <th style={{ textAlign: "right" }}>รวม</th>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4">ไม่มีข้อมูลอะไหล่</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {repairItems.length > 0 ? (
+                      repairItems.map((i, index) => (
+                        <tr key={i.part_id || index}>
+                          <td>{index + 1}</td>
+                          <td>{i.partname}</td>
+                          <td style={{ textAlign: "center" }}>{i.quantity}</td>
+                          <td style={{ textAlign: "right" }}>{Number(i.unit_price).toLocaleString()} ฿</td>
+                          <td style={{ textAlign: "right" }}>
+                            {(i.unit_price * i.quantity).toLocaleString()} ฿
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="5" style={{ textAlign: "center", py: 2, color: "var(--text-muted)" }}>
+                          ยังไม่มีข้อมูลการใช้อะไหล่
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
 
             {/* 💰 รวมยอด */}
             <div className="total-box">
-              <p>
-                ค่าอะไหล่:{" "}
-                {repairItems
-                  .reduce((s, i) => s + i.unit_price * i.quantity, 0)
-                  .toLocaleString()}{" "}
-                ฿
-              </p>
-              <p>
-                ค่าบริการ:{" "}
-                {Number(selectedBooking.service || 0).toLocaleString()} ฿
-              </p>
+              <div className="total-row">
+                <span>ค่าอะไหล่รวม</span>
+                <span>
+                  {repairItems
+                    .reduce((s, i) => s + i.unit_price * i.quantity, 0)
+                    .toLocaleString()}{" "}
+                  ฿
+                </span>
+              </div>
+              <div className="total-row">
+                <span>ค่าบริการการช่าง</span>
+                <span>
+                  {Number(selectedBooking.service || 0).toLocaleString()} ฿
+                </span>
+              </div>
               {selectedBooking.transport_required && (
-                <p>
-                  ค่าขนส่ง:{" "}
-                  {Number(selectedBooking.freight || 0).toLocaleString()} ฿
-                </p>
+                <div className="total-row">
+                  <span>ค่าขนส่ง/รับ-ส่งรถ</span>
+                  <span>
+                    {Number(selectedBooking.freight || 0).toLocaleString()} ฿
+                  </span>
+                </div>
               )}
-              <hr />
-              <b>
-                รวมทั้งหมด:{" "}
-                {(
-                  Number(selectedBooking.service || 0) +
-                  Number(selectedBooking.freight || 0) +
-                  repairItems.reduce((s, i) => s + i.unit_price * i.quantity, 0)
-                ).toLocaleString()}{" "}
-                ฿
-              </b>
+              <div className="total-divider"></div>
+              <div className="total-final">
+                <span>ยอดรวมสุทธิ</span>
+                <span>
+                  {(
+                    Number(selectedBooking.service || 0) +
+                    Number(selectedBooking.freight || 0) +
+                    repairItems.reduce((s, i) => s + i.unit_price * i.quantity, 0)
+                  ).toLocaleString()}{" "}
+                  ฿
+                </span>
+              </div>
             </div>
 
             {/* 📸 อัปโหลดสลิป */}
