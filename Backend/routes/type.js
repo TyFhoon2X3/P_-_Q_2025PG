@@ -17,6 +17,6 @@ router.put("/:id", type.updateTypeCar);
 
 router.delete("/:id", type.deleteTypeCar);
 
-
+///tojodscjosjojsdojcdosoi
 
 module.exports = router;
