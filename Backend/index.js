@@ -30,7 +30,12 @@ const app = express();
 // ====================================
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:8000"],
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:8000",
+      "https://p-q-2025-pg.vercel.app",
+    ],
     credentials: true,
   })
 );
