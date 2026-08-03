@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Swal from "sweetalert2";
+import { api } from "../api";
 import "../styles/auth.css";
 
 export default function Register() {
@@ -24,22 +25,10 @@ export default function Register() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:3000/api/register", {
+      await api("/api/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: form,
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        Swal.fire({
-          icon: "error",
-          title: "❌ สมัครสมาชิกไม่สำเร็จ",
-          text: data.message || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
-        });
-        return;
-      }
 
       Swal.fire({
         icon: "success",
@@ -52,8 +41,8 @@ export default function Register() {
       console.error(err);
       Swal.fire({
         icon: "error",
-        title: "⚠️ ข้อผิดพลาดของเครือข่าย",
-        text: "ไม่สามารถติดต่อเซิร์ฟเวอร์ได้ กรุณาลองใหม่ภายหลัง",
+        title: "❌ สมัครสมาชิกไม่สำเร็จ",
+        text: err.message || "เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง",
       });
     } finally {
       setLoading(false);

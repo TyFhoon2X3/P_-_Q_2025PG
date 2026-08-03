@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import Swal from "sweetalert2";
+import { api } from "../api";
 import "../styles/auth.css";
 
 export default function Login() {
@@ -18,23 +19,10 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:3000/api/login", {
+      const data = await api("/api/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: form,
       });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        Swal.fire({
-          icon: "error",
-          title: "เกิดข้อผิดพลาด",
-          text: data.message || "❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง",
-          confirmButtonColor: "#d33",
-        });
-        return;
-      }
 
       // ✅ เก็บ token, role และ name
       localStorage.setItem("token", data.token);
@@ -61,9 +49,12 @@ export default function Login() {
     } catch (err) {
       console.error(err);
       Swal.fire({
-        icon: "warning",
-        title: "เชื่อมต่อไม่ได้",
-        text: "⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์",
+        icon: err.message?.includes("fetch") ? "warning" : "error",
+        title: err.message?.includes("fetch") ? "เชื่อมต่อไม่ได้" : "เกิดข้อผิดพลาด",
+        text: err.message?.includes("fetch")
+          ? "⚠️ ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์"
+          : err.message || "❌ อีเมลหรือรหัสผ่านไม่ถูกต้อง",
+        confirmButtonColor: "#d33",
       });
     } finally {
       setLoading(false);
