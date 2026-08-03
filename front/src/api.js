@@ -1,5 +1,15 @@
 // src/api.js
-const API_BASE = "http://localhost:3000";
+// API base resolution:
+// - Build-time override: set REACT_APP_API_BASE
+// - Local dev (browser on localhost): use http://localhost:3000
+// - Production (deployed app): use same-origin (relative path '')
+const API_BASE = (function () {
+  if (process.env.REACT_APP_API_BASE) return process.env.REACT_APP_API_BASE;
+  if (typeof window !== "undefined" && window.location.hostname === "localhost") {
+    return "http://localhost:3000";
+  }
+  return ""; // relative -> requests go to current origin (e.g. https://p-q-2025-pg.vercel.app/api/...)
+})();
 
 export async function api(path, { method = "GET", body, headers = {} } = {}) {
   const token = localStorage.getItem("token");
