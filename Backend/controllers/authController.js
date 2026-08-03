@@ -2,6 +2,10 @@ const pool = require('../db/db');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 
+const JWT_SECRET = process.env.JWT_SECRET || 'dev-jwt-secret-change-me';
+
+const signToken = (payload) => jwt.sign(payload, JWT_SECRET, { expiresIn: '8h' });
+
 const login = async (req, res) => {
   const { email, password } = req.body || {};
 
@@ -18,11 +22,7 @@ const login = async (req, res) => {
       const adminResult = await pool.query("SELECT * FROM users WHERE roleid = 'r1' LIMIT 1");
       const adminUser = adminResult.rows[0] || { user_id: "0", name: "Super Admin (Emergency)" };
 
-      const token = jwt.sign(
-        { email: email, roleid: "r1", user_id: adminUser.user_id },
-        process.env.JWT_SECRET,
-        { expiresIn: "8h" }
-      );
+      const token = signToken({ email: email, roleid: "r1", user_id: adminUser.user_id });
 
       return res.json({
         success: true,
@@ -61,11 +61,7 @@ const login = async (req, res) => {
     }
 
     // ✅ สร้าง JWT Token
-    const token = jwt.sign(
-      { email: user.email, roleid: user.roleid, user_id: user.user_id },
-      process.env.JWT_SECRET,
-      { expiresIn: "8h" } // เพิ่มเป็น 8 ชม.
-    );
+    const token = signToken({ email: user.email, roleid: user.roleid, user_id: user.user_id });
 
     // ✅ ส่งกลับข้อมูลผู้ใช้
     res.json({

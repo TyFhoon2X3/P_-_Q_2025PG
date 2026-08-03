@@ -30,7 +30,7 @@ const app = express();
 // ====================================
 app.use(
   cors({
-    origin: "http://localhost:8000", // URL ของ React frontend
+    origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:8000"],
     credentials: true,
   })
 );
@@ -46,6 +46,12 @@ app.use(express.urlencoded({ extended: true }));
 // ✅ (ต้องอยู่ก่อนการ mount routes ทั้งหมด)
 // ====================================
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// ====================================
+// ✅ 3.1 Serve React build files
+// ====================================
+const clientDistPath = path.join(__dirname, "build");
+app.use(express.static(clientDistPath));
 
 // ====================================
 // ✅ 4. Public Routes (ไม่ต้อง JWT)
@@ -68,14 +74,21 @@ app.use("/api/repair-items", repairItemRoutes);
 app.use("/api/contact", require("./routes/contactRoutes"));
 
 // ====================================
-// ✅ 6. Default Route (404 handler)
+// ✅ 6. Client-side routing fallback
+// ====================================
+app.get(/^(?!\/api).*/, (req, res) => {
+  res.sendFile(path.join(clientDistPath, "index.html"));
+});
+
+// ====================================
+// ✅ 7. Default Route (404 handler)
 // ====================================
 app.use((req, res) => {
   res.status(404).json({ success: false, message: "Route not found" });
 });
 
 // ====================================
-// ✅ 7. Start Server
+// ✅ 8. Start Server
 // ====================================
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
