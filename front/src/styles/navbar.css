@@ -1,10 +1,7 @@
 /* Navbar wrapper */
 .nav {
-  background: rgba(15, 23, 42, 0.85);
-  /* More transparent for glass effect */
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0b1220; /* flat dark background */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   color: var(--text-primary);
   height: var(--nav-height);
   position: sticky;
@@ -92,17 +89,15 @@
 .notification-dropdown,
 .user-dropdown {
   position: absolute;
-  top: calc(100% + 12px);
+  top: calc(100% + 8px);
   right: 0;
-  background: #1e293b;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 14px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  background: #111827; /* flatter panel */
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  border-radius: 8px;
   min-width: 220px;
   padding: 6px;
   z-index: 1001;
-  animation: dropdownIn 0.2s ease-out;
-  backdrop-filter: blur(20px);
+  animation: dropdownIn 0.12s ease-out;
 }
 
 @keyframes dropdownIn {
@@ -300,22 +295,27 @@
 
   .mobile-menu-btn {
     display: block;
-    order: -1;
+    order: 2;
+    margin-left: auto;
   }
 
   .nav-links {
     position: fixed;
     top: var(--nav-height);
-    left: 0;
-    width: 100%;
+    right: 0;
+    left: auto;
+    width: 320px;
+    max-width: 90%;
     height: calc(100vh - var(--nav-height));
-    background: #0f172a;
+    background: #0b1220; /* flat background */
     flex-direction: column;
-    padding: 24px;
+    padding: 20px;
     gap: 12px;
-    transform: translateX(-100%);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateX(100%);
+    transition: transform 0.22s ease;
     overflow-y: auto;
+    box-shadow: none; /* remove heavy shadow */
+    border-left: 1px solid rgba(255,255,255,0.02);
   }
 
   .nav-links.open {

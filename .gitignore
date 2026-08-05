@@ -8,3 +8,39 @@ yarn-error.log*
 
 # Environment files
 
+# Frontend build
+/front/build/
+/front/.cache/
+
+# Backend uploads / runtime files
+/Backend/uploads/
+/Backend/.env
+
+# Environment variables
+.env
+.env.*
+
+# pnpm / package locks (optional)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+
+# VSCode
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Ignore compiled assets and temporary files
+dist/
+coverage/
+*.tmp
+*.temp
+
+# Ignore exported PDFs and other user uploads
+*.pdf
+
+# JetBrains
+.idea/
+

@@ -178,10 +178,10 @@
   backdrop-filter: blur(4px);
   display: flex;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   overflow-y: auto;
   z-index: 999;
-  padding: 40px 10px;
+  padding: 24px 18px; /* reduce edge contact */
 }
 
 .popup-card {
@@ -190,8 +190,9 @@
   border-radius: 16px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
   width: 95%;
-  max-width: 850px;
-  padding: 0;
+  max-width: 1100px;
+  padding: 18px; /* ensure inner spacing */
+  box-sizing: border-box;
   border: 1px solid var(--border-color);
   animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
@@ -215,7 +216,7 @@
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--border-color);
-  padding: 20px 28px;
+  padding: 12px 18px; /* tighter header to allow content breathing */
   background: var(--bg-secondary);
 }
 
@@ -241,8 +242,9 @@
 
 /* Section Layout */
 .popup-section {
-  padding: 24px 28px;
+  padding: 18px 14px; /* reduce so sections don't feel cramped against edges */
   border-bottom: 1px solid var(--border-color);
+  box-sizing: border-box;
 }
 
 .popup-section:last-child {
@@ -257,6 +259,57 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Body grid: left = main details + parts, right = cost + slip */
+.popup-body-grid {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 24px;
+  align-items: start;
+  max-height: calc(100vh - 160px);
+  overflow: auto;
+  padding: 6px; /* small inner padding so children don't touch card edges */
+}
+
+/* Currency input group */
+.input-currency {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0,0,0,0.03);
+  padding: 8px 10px;
+  border-radius: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.input-currency input {
+  border: none;
+  background: transparent;
+  padding: 8px;
+  font-size: 15px;
+  color: var(--text-primary);
+  outline: none;
+  width: 100%;
+  min-width: 0;
+}
+
+.cost-form {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.cost-form .btn-save {
+  white-space: nowrap;
+}
+
+.small-table { overflow-x: auto; }
+
+.input-currency .currency {
+  font-weight: 800;
+  color: var(--accent-color);
 }
 
 .info-grid {

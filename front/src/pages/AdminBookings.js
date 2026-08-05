@@ -149,21 +149,28 @@ export default function AdminRepairManager() {
     e.preventDefault();
     const freightInput = e.target.elements.freight;
     const serviceInput = e.target.elements.service;
-
     const freight = selected.transport_required ? Number(freightInput?.value || 0) : 0;
     const service = Number(serviceInput?.value || 0);
+
+    // Sanitise and prevent negative values
+    const safeFreight = Math.max(0, freight);
+    const safeService = Math.max(0, service);
+
+    if (freight < 0 || service < 0) {
+      return Swal.fire("❌", "ค่าต้องไม่เป็นค่าติดลบ", "error");
+    }
 
     console.log("Saving cost:", { freight, service, transport: selected.transport_required });
 
     const res = await api(`/api/bookings/${selected.booking_id}/cost`, {
       method: "PUT",
-      body: { freight, service },
+      body: { freight: safeFreight, service: safeService },
     });
 
     if (res.success) {
       Swal.fire("✅", "บันทึกค่าใช้จ่ายสำเร็จ", "success");
       fetchBookings();
-      setSelected({ ...selected, freight, service });
+      setSelected({ ...selected, freight: safeFreight, service: safeService });
     } else {
       Swal.fire("❌", res.message || "บันทึกไม่สำเร็จ", "error");
     }
@@ -455,14 +462,15 @@ export default function AdminRepairManager() {
 
       {/* 🪄 Popup ใหม่แบบ UX/UI สวย */}
       {selected && (
-        <div className="popup-overlay" onClick={closePopup}>
+        <div className="popup-overlay">
           <div className="popup-card" onClick={(e) => e.stopPropagation()}>
             <header className="popup-header">
               <h3>🧾 งานซ่อม #{selected.booking_id}</h3>
               <button className="btn-close" onClick={closePopup}>✖</button>
             </header>
 
-            <section className="popup-section info">
+            <div className="popup-body-grid">
+              <section className="popup-section info">
               <h4>🔧 ข้อมูลทั่วไป</h4>
               <div className="info-grid">
                 <div><b>ลูกค้า:</b> {selected.owner_name}</div>
@@ -496,9 +504,9 @@ export default function AdminRepairManager() {
                   </select>
                 </div>
               </div>
-            </section>
+              </section>
 
-            <section className="popup-section parts">
+              <section className="popup-section parts">
               <h4>🧩 รายการอะไหล่</h4>
               <table className="small-table">
                 <thead>
@@ -548,17 +556,43 @@ export default function AdminRepairManager() {
                 </form>
 
               )}
-            </section>
+              </section>
 
-            <section className="popup-section cost">
+              <section className="popup-section cost">
               <h4>💰 ค่าใช้จ่าย</h4>
-              <form onSubmit={updateCost} className="cost-form">
-                {selected.transport_required && (
-                  <input type="number" name="freight" placeholder="ค่าขนส่ง" defaultValue={selected.freight || 0} />
-                )}
-                <input type="number" name="service" placeholder="ค่าบริการ" defaultValue={selected.service || 0} />
-                <button className="btn btn-save">💾 บันทึก</button>
-              </form>
+                <form onSubmit={updateCost} className="cost-form">
+                  {selected.transport_required && (
+                    <div className="input-currency">
+                      <input
+                        type="number"
+                        name="freight"
+                        placeholder="ค่าขนส่ง"
+                        defaultValue={selected.freight || 0}
+                        min="0"
+                        step="0.01"
+                        inputMode="decimal"
+                        aria-label="ค่าขนส่ง"
+                      />
+                      <span className="currency">฿</span>
+                    </div>
+                  )}
+
+                  <div className="input-currency">
+                    <input
+                      type="number"
+                      name="service"
+                      placeholder="ค่าบริการ"
+                      defaultValue={selected.service || 0}
+                      min="0"
+                      step="0.01"
+                      inputMode="decimal"
+                      aria-label="ค่าบริการ"
+                    />
+                    <span className="currency">฿</span>
+                  </div>
+
+                  <button className="btn btn-save">💾 บันทึก</button>
+                </form>
 
               <div className="total-summary">
                 <p>ค่าอะไหล่: {repairItems.reduce((sum, i) => sum + i.quantity * i.unit_price, 0).toLocaleString()} ฿</p>
@@ -573,21 +607,23 @@ export default function AdminRepairManager() {
               </div>
             </section>
 
-            {/* ✅ แสดงสลิปโอนเงิน */}
-            {selected.slipfilename && (
-              <section className="popup-section slip" style={{ textAlign: "center", marginTop: "16px" }}>
-                <h4>📸 หลักฐานการโอนเงิน</h4>
-                <div className="slip-preview">
-                  <img
-                    src={`http://localhost:3000/uploads/${selected.slipfilename}`}
-                    alt="Slip Payment"
-                    style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: "8px", cursor: "pointer", border: "1px solid #ddd" }}
-                    onClick={() => window.open(`http://localhost:3000/uploads/${selected.slipfilename}`, "_blank")}
-                  />
-                  <p style={{ fontSize: "12px", color: "gray", marginTop: "4px" }}>คลิกที่รูปเพื่อดูภาพขนาดใหญ่</p>
-                </div>
-              </section>
-            )}
+              {/* ✅ แสดงสลิปโอนเงิน */}
+              {selected.slipfilename && (
+                <section className="popup-section slip" style={{ textAlign: "center", marginTop: "16px" }}>
+                  <h4>📸 หลักฐานการโอนเงิน</h4>
+                  <div className="slip-preview">
+                    <img
+                      src={`http://localhost:3000/uploads/${selected.slipfilename}`}
+                      alt="Slip Payment"
+                      style={{ maxWidth: "100%", maxHeight: "300px", borderRadius: "8px", cursor: "pointer", border: "1px solid #ddd" }}
+                      onClick={() => window.open(`http://localhost:3000/uploads/${selected.slipfilename}`, "_blank")}
+                    />
+                    <p style={{ fontSize: "12px", color: "gray", marginTop: "4px" }}>คลิกที่รูปเพื่อดูภาพขนาดใหญ่</p>
+                  </div>
+                </section>
+              )}
+
+            </div>
 
             <footer className="popup-actions">
               <button className="btn btn-print" onClick={printPDF}>🖨️ พิมพ์ใบซ่อม</button>
